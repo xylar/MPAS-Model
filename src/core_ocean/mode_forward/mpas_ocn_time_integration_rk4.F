@@ -130,6 +130,7 @@ module ocn_time_integration_rk4
       logical, pointer :: config_disable_tr_all_tend
       real (kind=RKIND), pointer :: config_mom_del4
       logical, pointer :: config_use_wetting_drying, config_verify_not_dry
+      logical, pointer :: config_use_wetting_drying, config_verify_not_dry, config_prevent_drying
       real (kind=RKIND), pointer :: config_mom_del4, config_drying_min_cell_height
       character (len=StrKIND), pointer :: config_land_ice_flux_mode
 
@@ -201,6 +202,7 @@ module ocn_time_integration_rk4
       call mpas_pool_get_config(domain % configs, 'config_disable_thick_all_tend', config_disable_thick_all_tend)
       call mpas_pool_get_config(domain % configs, 'config_disable_tr_all_tend', config_disable_tr_all_tend)
       call mpas_pool_get_config(domain % configs, 'config_use_wetting_drying', config_use_wetting_drying)
+      call mpas_pool_get_config(domain % configs, 'config_prevent_drying', config_prevent_drying)
       call mpas_pool_get_config(domain % configs, 'config_verify_not_dry', config_verify_not_dry)
       call mpas_pool_get_config(domain % configs, 'config_drying_min_cell_height', config_drying_min_cell_height)
 
@@ -464,8 +466,18 @@ module ocn_time_integration_rk4
            call ocn_time_integrator_rk4_compute_thick_tends( block, dt, rk_substep_weights(rk_step), err )
 
            ! check to ensure that cells have not dried out
-           if (config_use_wetting_drying .and. config_verify_not_dry) then
-             call ocn_wetting_drying_verify(block, config_drying_min_cell_height, err)
+           if (config_use_wetting_drying) then
+
+             ! ensure existing layerThickness is valid
+             if (config_verify_not_dry) then
+               call ocn_wetting_drying_verify(block, config_drying_min_cell_height, err)
+             end if
+
+             ! modify velocity tendency to prevent drying of cell 
+             if (config_prevent_drying) then
+               call ocn_prevent_drying(block, dt, rk_substep_weights(rk_step), err)
+             end if
+
            end if
 
            block => block % next
@@ -788,7 +800,7 @@ module ocn_time_integration_rk4
       endif
       call mpas_threading_barrier()
 
-      call ocn_tend_vel(tendPool, provisStatePool, forcingPool, diagnosticsPool, meshPool, scratchPool, 1)
+      call ocn_tend_vel(tendPool, provisStatePool, forcingPool, diagnosticsPool, meshPool, scratchPool, 1, dt)
       call mpas_threading_barrier()
 
    end subroutine ocn_time_integrator_rk4_compute_vel_tends!}}}
@@ -989,7 +1001,7 @@ module ocn_time_integration_rk4
       endif
       call mpas_threading_barrier()
 
-      call ocn_tend_vel(tendPool, provisStatePool, forcingPool, diagnosticsPool, meshPool, scratchPool, 1)
+      call ocn_tend_vel(tendPool, provisStatePool, forcingPool, diagnosticsPool, meshPool, scratchPool, 1, dt)
       call mpas_threading_barrier()
 
       if (associated(highFreqThicknessProvis)) then
