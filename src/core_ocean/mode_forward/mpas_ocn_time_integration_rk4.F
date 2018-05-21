@@ -463,7 +463,7 @@ module ocn_time_integration_rk4
              if (config_prevent_drying) then
                block => domain % blocklist
                  do while (associated(block))
-                   call ocn_prevent_drying(block, dt, rk_substep_weights(rk_step), config_zero_drying_velocity, err)
+                   call ocn_prevent_drying_rk4(block, dt, rk_substep_weights(rk_step), config_zero_drying_velocity, err)
                    block => block % next
                  end do
              end if
@@ -568,7 +568,7 @@ module ocn_time_integration_rk4
         if (config_verify_not_dry) then
           block => domain % blocklist
             do while (associated(block))
-              call ocn_wetting_drying_verify(block, config_drying_min_cell_height, dt, err)
+              call ocn_wetting_drying_verify(block, config_drying_min_cell_height, err)
               block => block % next
             end do
         end if
