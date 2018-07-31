@@ -7,6 +7,7 @@ from open_msh import readmsh
 import numpy as np
 from scipy import interpolate
 import netCDF4 as nc4
+import timeit
 import pprint
 
 dtor = np.pi/180.0
@@ -20,7 +21,7 @@ def interpolate_bathymetry(bathy_data_file,lon_pts,lat_pts):
     lat_data = nc_data.variables['lat'][:]*dtor
     
     # Setup interpolation boxes (for large bathymetry datasets)
-    n = 100  
+    n = 15  
     xbox = np.linspace(-180,180,n)*dtor
     ybox = np.linspace(-90,90,n)*dtor
     dx = xbox[1]-xbox[0]
@@ -34,9 +35,10 @@ def interpolate_bathymetry(bathy_data_file,lon_pts,lat_pts):
     bathymetry = np.zeros(np.shape(lon_mesh))
     bathymetry.fill(np.nan)
 
-    # Interpolate using inside each box
+    # Interpolate inside each box
+    start = timeit.default_timer()
     for i,box in enumerate(boxes):
-      print i,"/",len(boxes)
+      print i+1,"/",len(boxes)
 
       # Get data inside box (plus a small overlap region)
       overlap = 0.1
@@ -58,6 +60,9 @@ def interpolate_bathymetry(bathy_data_file,lon_pts,lat_pts):
       bathy = interpolate.RegularGridInterpolator((xdata,ydata),zdata.T,bounds_error=False,fill_value=np.nan)
       bathy_int = bathy(xy_pts)
       bathymetry[idx] = bathy_int
+    
+    end = timeit.default_timer()
+    print end-start, " seconds"
  
     return bathymetry
   
