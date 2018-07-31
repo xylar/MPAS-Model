@@ -8,14 +8,17 @@ from scipy import spatial,io
 import os
 import timeit
 from mpl_toolkits.basemap import Basemap
+import inject_bathymetry
+import mesh_definition_tools as mdt
 plt.switch_backend('agg')
 
 km = 1000
+deg2rad = np.pi/180
+rad2deg = 180/np.pi
 
 def CPP_projection(lon,lat,origin):
 
   R = 6378206.4
-  deg2rad = np.pi/180
   origin = origin*deg2rad
   x = R*(lon*deg2rad-origin[0])*np.cos(origin[1])
   y = R*lat*deg2rad
@@ -46,10 +49,10 @@ region_box = US_Atlantic_Coast
 # Mesh parameters
 grd_box = Entire_Globe 
 ddeg = .1
-dx_min = 1*km
-dx_max = 240*km
-trans_width = 1000*km
-trans_start = 100*km
+dx_min = 10*km
+dx_max = 60*km
+trans_width = 600*km
+trans_start = 400*km
 
 # Bounding box of plotting region
 plot_box = US_Atlantic_Gulf_Coast 
@@ -146,7 +149,6 @@ print end-start, " seconds"
 # Make distance array that corresponds with cell_width array
 D = np.reshape(d,(ny,nx))
 
-
 if plot_option:
   # Find indicies of coordinates inside plotting box
   lon_idx, = np.where((lon_grd > plot_box[0]) & (lon_grd < plot_box[1]))
@@ -171,12 +173,59 @@ if plot_option:
   plt.savefig('distance.png',bbox_inches='tight')
 
 # Assign background grid cell width values
-cell_width = dx_max*np.ones(D.shape)
+#cell_width = dx_max*np.ones(D.shape)
+cell_width_lat = mdt.EC_CellWidthVsLat(lat_grd)
+cell_width = np.tile(cell_width_lat,(nx,1)).T*km
+
+if plot_option:
+  plt.figure()
+  plt.contourf(lon_grd,lat_grd,cell_width)
+  m.drawcoastlines()
+  plt.colorbar()
+  plt.savefig('bckgnd_grid_cell_width.png',bbox_inches='tight')
+
+## Interpolate bathymetry onto background grid
+#Lon_grd = Lon_grd*deg2rad
+#Lat_grd = Lat_grd*deg2rad
+#bathy = inject_bathymetry.interpolate_bathymetry(data_path+nc_file,Lon_grd.ravel(),Lat_grd.ravel())
+#bathy_grd = -1.0*np.reshape(bathy,(ny,nx))
+#ocn_idx = np.where(bathy_grd > 0)
+#
+#if plot_option:
+#  plt.figure()
+#  levels = np.linspace(0,11000,100)
+#  plt.contourf(lon_grd,lat_grd,bathy_grd,levels=levels)
+#  m.drawcoastlines()
+#  plt.colorbar()
+#  plt.axis('equal')
+#  plt.savefig('bckgnd_grid_bathy.png',bbox_inches='tight')
+
+## Interpolate bathymetry gradient onto background grid
+#dbathy = inject_bathymetry.interpolate_bathymetry(data_path+nc_file,Lon_grd.ravel(),Lat_grd.ravel(),grad=True)
+#dbathy = np.reshape(dbathy,(ny,nx))
+#dbathy_grd = np.zeros((ny,nx))
+#dbathy_grd[ocn_idx] = dbathy[ocn_idx]
+#
+#if plot_option:
+#  plt.figure()
+#  plt.contourf(lon_grd,lat_grd,1/dbathy_grd)
+#  m.drawcoastlines()
+#  plt.colorbar()
+#  plt.axis('equal')
+#  plt.savefig('bckgnd_grid_bathy_grad.png',bbox_inches='tight')
 
 # Compute cell width based on distance
 backgnd_weight = .5*(np.tanh((D-trans_start-.5*trans_width)/(.2*trans_width))+1)
 dist_weight = 1-backgnd_weight
-cell_width = (dx_min*dist_weight+dx_max*backgnd_weight)/km
+##hres = np.maximum(dx_min*bathy_grd/20,dx_min)
+##hres = np.minimum(hres,dx_max)
+#hw = np.zeros(Lon_grd.shape) + dx_max
+#hw[ocn_idx] = np.sqrt(9.81*bathy_grd[ocn_idx])*12.42*3600/25
+#hs = .20*1/dbathy_grd
+#h = np.fmin(hs,hw)
+#h = np.fmin(h,dx_max)
+#h = np.fmax(dx_min,h)
+cell_width = (dx_min*dist_weight+np.multiply(cell_width,backgnd_weight))/km
 #cell_width_dist = dx_max*np.tanh(1.0/(2*trans_width)*D)+dx_min
 #cell_width = np.minimum(cell_width_dist,cell_width)/km
 cell_width_plot = cell_width[np.ix_(lat_idx,lon_idx)]
