@@ -29,8 +29,8 @@ Delaware_Bay =      {"include":[np.array([-75.61903,-74.22, 37.767484, 40.312747
 Galveston_Bay =     {"include":[np.array([-95.45,-94.4, 29, 30])],
                      "exclude":[]}
 US_Atlantic_Coast = {"include":[np.array([-81.7,-62.3,25.1,46.24])],
-                     "exclude":[np.array([-66.0,-64.0,31.5,33.0]),
-                                np.array([-79.5,-70.0,20.0,27.5])]}
+                     "exclude":[np.array([-66.0,-64.0,31.5,33.0]),    # Bermuda
+                                np.array([-79.75,-70.0,20.0,28.5])]}  # Bahamas
 
 # Plotting boxes
 Western_Atlantic = np.array([-98.186645, -59.832744, 7.791301 ,45.942453])
@@ -164,10 +164,10 @@ def extract_coastlines(nc_file,region_box,z_contour=0,n_longest=10):
           exclude = True
           break
   
-        # Keep coastlines not entirely contained in exclude areas
-        if not exclude:
-          cpad= np.vstack((c,[np.nan,np.nan]))
-          coastline_list.append(cpad)
+      # Keep coastlines not entirely contained in exclude areas
+      if not exclude:
+        cpad= np.vstack((c,[np.nan,np.nan]))
+        coastline_list.append(cpad)
 
     print "Done"
   
