@@ -38,6 +38,9 @@ US_Gulf_Coast = {"include":[np.array([-98.0,-80.0,26.0,31.0])],
 US_West_Coast = {"include":[np.array([-127.0,-116.0,32.5,49.0])],
                  "exclude":[np.array([-116.5,-115.0,32.8,33.8]),  # Salton Sea
                             np.array([-120.5,-116.5,35.5,40.5])]} # Lake Tahoe, etc.
+Alaska        = {"include":[np.array([-170.0,-140.0,58.0,72.0])],
+                 "exclude":[]}
+
 
 CONUS = {"include":[],"exclude":[]}
 CONUS["include"].extend(US_East_Coast["include"]) 
@@ -45,12 +48,16 @@ CONUS["include"].extend(US_Gulf_Coast["include"])
 CONUS["include"].extend(US_West_Coast["include"])
 CONUS["exclude"].extend(US_East_Coast["exclude"])
 CONUS["exclude"].extend(US_West_Coast["exclude"])
-pprint.pprint(CONUS)
 
+Continental_US = {"include":[],"exclude":[]}
+Continental_US["include"].extend(CONUS["include"])
+Continental_US["include"].extend(Alaska["include"])
+Continental_US["exclude"].extend(CONUS["exclude"])
 
 # Plotting boxes
 Western_Atlantic = np.array([-98.186645, -59.832744, 7.791301 ,45.942453])
 Contiguous_US = np.array([-132.0,-59.832744,7.791301,51.0])
+North_America = np.array([-175.0,-60.0,7.5,72.0])
 Delware_Region = np.array([-77, -69.8 ,35.5, 41])
 Entire_Globe = np.array([-180,180,-90,90])
 
@@ -63,7 +70,7 @@ data_path = "/users/sbrus/climate/bathy_data/SRTM15_plus/"
 nc_file = "earth_relief_15s.nc"
 
 # Bounding box of coastal refinement region
-region_box = CONUS
+region_box = Continental_US
 origin = np.array([-100,40])
 
 # Mesh parameters
@@ -76,7 +83,7 @@ trans_start = 400*km
 mesh_type = 'EC'     #'EC' (defaults to 60to30), 'QU' (uses dx_max)
 
 # Bounding box of plotting region
-plot_box = Contiguous_US 
+plot_box = North_America
 
 ######################################################################################
 # Functions
