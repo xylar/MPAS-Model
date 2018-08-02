@@ -10,6 +10,7 @@ import timeit
 from mpl_toolkits.basemap import Basemap
 import inject_bathymetry
 import mesh_definition_tools as mdt
+import pprint
 plt.switch_backend('agg')
 
 ######################################################################################
@@ -24,16 +25,32 @@ nn_search = "flann"
 plot_option = True
 
 # Region boxes
-Delaware_Bay =      {"include":[np.array([-75.61903,-74.22, 37.767484, 40.312747])],
-                     "exclude":[]}
-Galveston_Bay =     {"include":[np.array([-95.45,-94.4, 29, 30])],
-                     "exclude":[]}
-US_Atlantic_Coast = {"include":[np.array([-81.7,-62.3,25.1,46.24])],
-                     "exclude":[np.array([-66.0,-64.0,31.5,33.0]),    # Bermuda
-                                np.array([-79.75,-70.0,20.0,28.5])]}  # Bahamas
+Delaware_Bay =  {"include":[np.array([-75.61903,-74.22, 37.767484, 40.312747])],
+                 "exclude":[]}
+Galveston_Bay = {"include":[np.array([-95.45,-94.4, 29, 30])],
+                 "exclude":[]}
+US_East_Coast = {"include":[np.array([-81.7,-62.3,25.1,46.24])],
+                 "exclude":[np.array([-66.0,-64.0,31.5,33.0]),     # Bermuda
+                             np.array([-79.75,-70.0,20.0,28.5])]}  # Bahamas
+US_Gulf_Coast = {"include":[np.array([-98.0,-80.0,26.0,31.0])],
+                 "exclude":[]}
+
+US_West_Coast = {"include":[np.array([-127.0,-116.0,32.5,49.0])],
+                 "exclude":[np.array([-116.5,-115.0,32.8,33.8]),  # Salton Sea
+                            np.array([-120.5,-116.5,35.5,40.5])]} # Lake Tahoe, etc.
+
+CONUS = {"include":[],"exclude":[]}
+CONUS["include"].extend(US_East_Coast["include"]) 
+CONUS["include"].extend(US_Gulf_Coast["include"]) 
+CONUS["include"].extend(US_West_Coast["include"])
+CONUS["exclude"].extend(US_East_Coast["exclude"])
+CONUS["exclude"].extend(US_West_Coast["exclude"])
+pprint.pprint(CONUS)
+
 
 # Plotting boxes
 Western_Atlantic = np.array([-98.186645, -59.832744, 7.791301 ,45.942453])
+Contiguous_US = np.array([-132.0,-59.832744,7.791301,51.0])
 Delware_Region = np.array([-77, -69.8 ,35.5, 41])
 Entire_Globe = np.array([-180,180,-90,90])
 
@@ -46,7 +63,7 @@ data_path = "/users/sbrus/climate/bathy_data/SRTM15_plus/"
 nc_file = "earth_relief_15s.nc"
 
 # Bounding box of coastal refinement region
-region_box = US_Atlantic_Coast
+region_box = CONUS
 origin = np.array([-100,40])
 
 # Mesh parameters
@@ -59,7 +76,7 @@ trans_start = 400*km
 mesh_type = 'EC'     #'EC' (defaults to 60to30), 'QU' (uses dx_max)
 
 # Bounding box of plotting region
-plot_box = Western_Atlantic
+plot_box = Contiguous_US 
 
 ######################################################################################
 # Functions
@@ -187,6 +204,7 @@ def extract_coastlines(nc_file,region_box,z_contour=0,n_longest=10):
     dsy = np.arange(0,lat_plot.size,ds)  # to speed up
     dsxy = np.ix_(dsy,dsx)               # plotting
     plt.contourf(lon_plot[dsx],lat_plot[dsy],z_plot[dsxy],levels=levels)
+    m.drawcoastlines()
     plt.plot(coastlines[:,0],coastlines[:,1],color='white')
     plt.colorbar()
     plt.axis('equal')
@@ -254,6 +272,7 @@ def compute_cell_width(D,cell_width):
   # Compute cell width based on distance
   backgnd_weight = .5*(np.tanh((D-trans_start-.5*trans_width)/(.2*trans_width))+1)
   dist_weight = 1-backgnd_weight
+  ## Use later for depth and slope dependent resolution
   ##hres = np.maximum(dx_min*bathy_grd/20,dx_min)
   ##hres = np.minimum(hres,dx_max)
   #hw = np.zeros(Lon_grd.shape) + dx_max
@@ -305,6 +324,7 @@ if __name__ == "__main__":
   compute_cell_width(D,cell_width)
 
 
+## Incorporate later for depth and slope dependent resolution
 
 ## Interpolate bathymetry onto background grid
 #Lon_grd = Lon_grd*deg2rad
