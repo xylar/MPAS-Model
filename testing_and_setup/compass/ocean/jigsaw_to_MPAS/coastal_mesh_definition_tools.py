@@ -131,11 +131,11 @@ def coastal_refined_mesh(params):
                         params["plot_option"],params["plot_box"])
   
   # Blend coastline and background resolution, save cell_width array as .mat file  
-  compute_cell_width(D,cell_width,params["dx_min"],params["trans_start"],params["trans_width"],
-                    params["plot_option"],params["plot_box"],lon_grd,lat_grd,coastlines)
+  cell_width = compute_cell_width(D,cell_width,params["dx_min"],params["trans_start"],params["trans_width"],
+                                  params["plot_option"],params["plot_box"],lon_grd,lat_grd,coastlines)
 
   ## Save matfile
-  io.savemat('cellWidthVsLatLon.mat',mdict={'cellWidth':cell_width,'lon':lon_grd,'lat':lat_grd})
+  io.savemat('cellWidthVsLatLon.mat',mdict={'cellWidth':cell_width/km,'lon':lon_grd,'lat':lat_grd})
 
   #return (cell_width,lon_grd,lat_grd)
 
@@ -259,7 +259,7 @@ def distance_to_coast(coastlines,lon_grd,lat_grd,origin,nn_search,
     tree = spatial.KDTree(coast_pts_xy)
   elif nn_search == "flann":
     flann = pyflann.FLANN()
-    flann.build_index(coast_pts_xy,algorithm='kdtree',target_precision=.999999999)
+    flann.build_index(coast_pts_xy,algorithm='kdtree',target_precision=1.0)
   
   # Put x,y backgound grid coordinates in a nx_grd x 2 array for kd-tree query
   Lon_grd,Lat_grd = np.meshgrid(lon_grd,lat_grd)
@@ -272,7 +272,7 @@ def distance_to_coast(coastlines,lon_grd,lat_grd,origin,nn_search,
   if nn_search == "kdtree":
     d,idx = tree.query(pts)
   elif nn_search == "flann":
-    idx,d = flann.nn_index(pts,checks=500)
+    idx,d = flann.nn_index(pts,checks=700)
     d = np.sqrt(d)
   end = timeit.default_timer()
   print "Done"
@@ -317,12 +317,12 @@ def compute_cell_width(D,cell_width,dx_min,trans_start,trans_width,
   #h = np.fmin(hs,hw)
   #h = np.fmin(h,dx_max)
   #h = np.fmax(dx_min,h)
-  cell_width = (dx_min*dist_weight+np.multiply(cell_width,backgnd_weight))/km
+  cell_width = (dx_min*dist_weight+np.multiply(cell_width,backgnd_weight))
 
   if plot_option:
 
     # Find coordinates and data inside plotting box
-    lon_plot,lat_plot,cell_width_plot = get_data_inside_box(lon_grd,lat_grd,cell_width,plot_box)
+    lon_plot,lat_plot,cell_width_plot = get_data_inside_box(lon_grd,lat_grd,cell_width/km,plot_box)
 
     # Plot cell width
     plt.figure()
@@ -333,6 +333,8 @@ def compute_cell_width(D,cell_width,dx_min,trans_start,trans_width,
     plt.colorbar()
     plt.axis('equal')
     plt.savefig('cell_width.png',bbox_inches='tight')
+
+  return cell_width
 
 ##############################################################
 
