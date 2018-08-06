@@ -9,14 +9,15 @@ from scipy import interpolate
 import netCDF4 as nc4
 import timeit
 import pprint
+import os
 
 dtor = np.pi/180.0
 rtod = 180.0/np.pi
 
-def interpolate_bathymetry(bathy_data_file,lon_pts,lat_pts):
+def interpolate_SRTM(lon_pts,lat_pts):
   
     # Open NetCDF data file and read cooordintes
-    nc_data = nc4.Dataset(bathy_data_file,"r")
+    nc_data = nc4.Dataset("earth_relief_15s.nc","r")
     lon_data = nc_data.variables['lon'][:]*dtor
     lat_data = nc_data.variables['lat'][:]*dtor
     
@@ -65,15 +66,23 @@ def interpolate_bathymetry(bathy_data_file,lon_pts,lat_pts):
     print end-start, " seconds"
  
     return bathymetry
-  
 
+def interpolate_topomsh(lon_pts,lat_pts):
+
+    topo = readmsh('topo.msh')
+    xpos = topo['COORD1']*dtor
+    ypos = topo['COORD2']*dtor
+    zlev = np.reshape(topo['VALUE'], (len(ypos), len(xpos)))
+
+    Y, X = np.meshgrid(ypos, xpos)
+
+    bathy = interpolate.LinearNDInterpolator(np.vstack((X.ravel(), Y.ravel())).T, zlev.ravel())
+    bathymetry = bathy(np.vstack((lon_pts,lat_pts)).T)  
+
+    return bathymetry
 
 if __name__ == "__main__":
     import sys
-
-    # Path to bathymetry data and name of file
-    data_path = "/users/sbrus/climate/bathy_data/SRTM15_plus/"
-    data_file = "earth_relief_15s.nc"
 
     # Open NetCDF mesh file and read mesh points
     mesh_file = sys.argv[1]
@@ -82,7 +91,13 @@ if __name__ == "__main__":
     lat_mesh = nc_mesh.variables['latCell'][:]
 
     # Interpolate bathymetry on to mesh points
-    bathymetry = interpolate_bathymetry(data_path+data_file,lon_mesh,lat_mesh)
+    if os.path.isfile("earth_relief_15s.nc"):
+      bathymetry = interpolate_SRTM(lon_mesh,lat_mesh)
+    elif os.path.isfile("topo.msh"):
+      bathymetry = interpolate_topomsh(lon_mesh,lat_mesh)
+    else:
+      print "Bathymetry data file not found"
+      raise SystemExit(0)
 
     # Create new NetCDF variables in mesh file, if necessary
     nc_vars = nc_mesh.variables.keys()
