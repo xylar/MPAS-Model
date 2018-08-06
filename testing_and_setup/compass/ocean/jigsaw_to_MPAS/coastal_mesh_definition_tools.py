@@ -2,10 +2,8 @@ import pyflann
 from  netCDF4 import Dataset
 import matplotlib.pyplot as plt
 from skimage import measure
-import math
 import numpy as np
 from scipy import spatial,io
-import os
 import timeit
 from mpl_toolkits.basemap import Basemap
 import inject_bathymetry
@@ -13,35 +11,49 @@ import mesh_definition_tools as mdt
 import pprint
 plt.switch_backend('agg')
 
-######################################################################################
-# Initial declarations
-######################################################################################
-
+# Constants
 km = 1000
 deg2rad = np.pi/180
 rad2deg = 180/np.pi
 
-nn_search = "flann"
-plot_option = True
+######################################################################################
+# Bounding box  declarations
+######################################################################################
 
+################
 # Region boxes
+################
+
+# Bays and estuaries
 Delaware_Bay =  {"include":[np.array([-75.61903,-74.22, 37.767484, 40.312747])],
                  "exclude":[]}
 Galveston_Bay = {"include":[np.array([-95.45,-94.4, 29, 30])],
                  "exclude":[]}
+
+# Coastlines
 US_East_Coast = {"include":[np.array([-81.7,-62.3,25.1,46.24])],
                  "exclude":[np.array([-66.0,-64.0,31.5,33.0]),     # Bermuda
                              np.array([-79.75,-70.0,20.0,28.5])]}  # Bahamas
-US_Gulf_Coast = {"include":[np.array([-98.0,-80.0,26.0,31.0])],
+US_Gulf_Coast = {"include":[
+                            np.array([-98.0,-80.0,24.0,31.0]),     
+                            np.array([-91.0,-86.0,20.0,22.0]) # Yucatan
+                           ],   
                  "exclude":[]}
 
-US_West_Coast = {"include":[np.array([-127.0,-116.0,32.5,49.0])],
+US_West_Coast = {"include":[
+                            np.array([-127.0,-116.0,32.5,49.0]),
+                            np.array([-117.5,-109.0,23.0,32.5]) # Baja
+                            ],
                  "exclude":[np.array([-116.5,-115.0,32.8,33.8]),  # Salton Sea
                             np.array([-120.5,-116.5,35.5,40.5])]} # Lake Tahoe, etc.
-Alaska        = {"include":[np.array([-170.0,-140.0,58.0,72.0])],
+Alaska        = {"include":[
+                            np.array([-170.0,-141.0,49.0,72.0]),
+                            np.array([-141.0,-129.5,49.0,61.0]),
+                            np.array([-129.5,-121.0,49.0,55.0]) # Connects AK to CA
+                           ],
                  "exclude":[]}
 
-
+# Combined coastlines
 CONUS = {"include":[],"exclude":[]}
 CONUS["include"].extend(US_East_Coast["include"]) 
 CONUS["include"].extend(US_Gulf_Coast["include"]) 
@@ -54,7 +66,10 @@ Continental_US["include"].extend(CONUS["include"])
 Continental_US["include"].extend(Alaska["include"])
 Continental_US["exclude"].extend(CONUS["exclude"])
 
+#################
 # Plotting boxes
+#################
+
 Western_Atlantic = np.array([-98.186645, -59.832744, 7.791301 ,45.942453])
 Contiguous_US = np.array([-132.0,-59.832744,7.791301,51.0])
 North_America = np.array([-175.0,-60.0,7.5,72.0])
@@ -65,42 +80,69 @@ Entire_Globe = np.array([-180,180,-90,90])
 # User-defined inputs
 ######################################################################################
 
+params = {
+
 # Path to bathymetry data and name of file
-data_path = "/users/sbrus/climate/bathy_data/SRTM15_plus/"
-nc_file = "earth_relief_15s.nc"
+"data_path": "/users/sbrus/climate/bathy_data/SRTM15_plus/",
+"nc_file": "earth_relief_15s.nc",
 
 # Bounding box of coastal refinement region
-region_box = Continental_US
-origin = np.array([-100,40])
+"region_box": Continental_US,
+"origin": np.array([-100,40]),
+
+# Coastline extraction parameters
+"z_contour": 0.0,
+"n_longest": 10,
 
 # Mesh parameters
-grd_box = Entire_Globe 
-ddeg = .1
-dx_min = 10*km
-dx_max = 60*km
-trans_width = 600*km
-trans_start = 400*km
-mesh_type = 'EC'     #'EC' (defaults to 60to30), 'QU' (uses dx_max)
+"grd_box": Entire_Globe ,
+"ddeg": .1,
+"mesh_type": 'EC',     #'EC' (defaults to 60to30), 'QU' (uses dx_max)
+"dx_max": 60*km,
+"dx_min": 10*km,
+"trans_width": 600*km,
+"trans_start": 400*km,
 
 # Bounding box of plotting region
-plot_box = North_America
+"plot_box": North_America,
+
+# Options
+"nn_search": "flann",
+"plot_option": True
+
+}
 
 ######################################################################################
 # Functions
 ######################################################################################
 
-def CPP_projection(lon,lat,origin):
+def coastal_refined_mesh(params):
 
-  R = 6378206.4
-  origin = origin*deg2rad
-  x = R*(lon*deg2rad-origin[0])*np.cos(origin[1])
-  y = R*lat*deg2rad
+  # Create the background cell width array 
+  lon_grd,lat_grd,cell_width = create_background_mesh(params["grd_box"],params["ddeg"],params["mesh_type"],params["dx_max"],
+                                                      params["plot_option"],params["plot_box"])
+ 
+  # Get coastlines from bathy/topo  data set   
+  coastlines = extract_coastlines(params["nc_file"],params["region_box"],params["z_contour"],params["n_longest"],
+                                  params["plot_option"],params["plot_box"])
+  
+  # Compute distance from background grid points to coastline 
+  D = distance_to_coast(coastlines,lon_grd,lat_grd,params["origin"],params["nn_search"],
+                        params["plot_option"],params["plot_box"])
+  
+  # Blend coastline and background resolution, save cell_width array as .mat file  
+  compute_cell_width(D,cell_width,params["dx_min"],params["trans_start"],params["trans_width"],
+                    params["plot_option"],params["plot_box"],lon_grd,lat_grd,coastlines)
 
-  return x,y
+  ## Save matfile
+  io.savemat('cellWidthVsLatLon.mat',mdict={'cellWidth':cell_width,'lon':lon_grd,'lat':lat_grd})
+
+  #return (cell_width,lon_grd,lat_grd)
 
 ##############################################################
 
-def create_background_mesh(grd_box,ddeg,mesh_type):
+def create_background_mesh(grd_box,ddeg,mesh_type,dx_max,
+                           plot_option=False,plot_box=[]):
 
   # Create cell width background grid
   lat_grd = np.arange(grd_box[2],grd_box[3],ddeg)
@@ -120,7 +162,7 @@ def create_background_mesh(grd_box,ddeg,mesh_type):
   if plot_option:
     plt.figure()
     plt.contourf(lon_grd,lat_grd,cell_width)
-    m.drawcoastlines()
+    plot_coarse_coast(plot_box)
     plt.colorbar()
     plt.savefig('bckgnd_grid_cell_width.png',bbox_inches='tight')
 
@@ -128,27 +170,8 @@ def create_background_mesh(grd_box,ddeg,mesh_type):
 
 ##############################################################
 
-def get_data_inside_box(lon,lat,data,box):
-
-  # Find indicies of coordinates inside bounding box
-  lon_idx, = np.where((lon > box[0]) & (lon < box[1]))
-  lat_idx, = np.where((lat > box[2]) & (lat < box[3]))
-  
-  # Get region data inside bounding box
-  lon_region = lon[lon_idx]
-  lat_region = lat[lat_idx]
-  latlon_idx = np.ix_(lat_idx,lon_idx)
-  dtype =  type(data)
-  try:     # Numpy indexing
-    z_region = data[latlon_idx]
-  except:  # NetCDF indexing
-    z_region = data[lat_idx,lon_idx]
-
-  return (lon_region,lat_region,z_region)
-
-##############################################################
-
-def extract_coastlines(nc_file,region_box,z_contour=0,n_longest=10):
+def extract_coastlines(nc_file,region_box,z_contour=0,n_longest=10,
+                       plot_option=False,plot_box=[]):
 
   # Open NetCDF file and read cooordintes
   nc_fid = Dataset(nc_file,"r")
@@ -203,7 +226,7 @@ def extract_coastlines(nc_file,region_box,z_contour=0,n_longest=10):
     # Find coordinates and data inside plotting box
     lon_plot,lat_plot,z_plot = get_data_inside_box(lon,lat,zdata,plot_box)
  
-    # Plot bathymetry data and coastlines
+    # Plot bathymetry data, coastlines and region boxes
     plt.figure()
     levels = np.linspace(np.amin(z_plot),np.amax(z_plot),100)
     ds = 10                              # Downsample
@@ -211,8 +234,12 @@ def extract_coastlines(nc_file,region_box,z_contour=0,n_longest=10):
     dsy = np.arange(0,lat_plot.size,ds)  # to speed up
     dsxy = np.ix_(dsy,dsx)               # plotting
     plt.contourf(lon_plot[dsx],lat_plot[dsy],z_plot[dsxy],levels=levels)
-    m.drawcoastlines()
+    plot_coarse_coast(plot_box)
     plt.plot(coastlines[:,0],coastlines[:,1],color='white')
+    for box in region_box["include"]:
+      plot_region_box(box,'b')
+    for box in region_box["exclude"]:
+      plot_region_box(box,'r')
     plt.colorbar()
     plt.axis('equal')
     plt.savefig('bathy_coastlines.png',bbox_inches='tight')
@@ -221,7 +248,8 @@ def extract_coastlines(nc_file,region_box,z_contour=0,n_longest=10):
 
 ##############################################################
 
-def distance_to_coast(coastlines,lon_grd,lat_grd,origin):
+def distance_to_coast(coastlines,lon_grd,lat_grd,origin,nn_search,
+                      plot_option=False,plot_box=[]):
 
   # Convert to x,y and create kd-tree
   coast_pts = coastlines[np.isfinite(coastlines).all(axis=1)]
@@ -263,7 +291,7 @@ def distance_to_coast(coastlines,lon_grd,lat_grd,origin):
     D_plot = D_plot/km 
     levels = np.linspace(np.amin(D_plot),np.amax(D_plot),10)
     plt.contourf(lon_plot,lat_plot,D_plot,levels=levels)
-    m.drawcoastlines()
+    plot_coarse_coast(plot_box)
     plt.plot(coastlines[:,0],coastlines[:,1],color='white')
     plt.grid(xdata=lon_plot,ydata=lat_plot,c='k',ls='-',lw=0.1,alpha=0.5)
     plt.colorbar()
@@ -274,7 +302,8 @@ def distance_to_coast(coastlines,lon_grd,lat_grd,origin):
 
 ##############################################################
 
-def compute_cell_width(D,cell_width):
+def compute_cell_width(D,cell_width,dx_min,trans_start,trans_width,
+                       plot_option=False,plot_box=[],lon_grd=[],lat_grd=[],coastlines=[]):
 
   # Compute cell width based on distance
   backgnd_weight = .5*(np.tanh((D-trans_start-.5*trans_width)/(.2*trans_width))+1)
@@ -289,10 +318,7 @@ def compute_cell_width(D,cell_width):
   #h = np.fmin(h,dx_max)
   #h = np.fmax(dx_min,h)
   cell_width = (dx_min*dist_weight+np.multiply(cell_width,backgnd_weight))/km
-  
-  # Save matfile
-  io.savemat('cellWidthVsLatLon.mat',mdict={'cellWidth':cell_width,'lon':lon_grd,'lat':lat_grd})
-  
+
   if plot_option:
 
     # Find coordinates and data inside plotting box
@@ -302,37 +328,67 @@ def compute_cell_width(D,cell_width):
     plt.figure()
     levels = np.linspace(np.amin(cell_width_plot),np.amax(cell_width_plot),100)
     plt.contourf(lon_plot,lat_plot,cell_width_plot,levels=levels)
-    m.drawcoastlines()
+    plot_coarse_coast(plot_box)
     plt.plot(coastlines[:,0],coastlines[:,1],color='white')
     plt.colorbar()
     plt.axis('equal')
     plt.savefig('cell_width.png',bbox_inches='tight')
 
-######################################################################################
-# Main 
-######################################################################################
+##############################################################
 
-if __name__ == "__main__":
+def CPP_projection(lon,lat,origin):
 
-  # Get coarse coastlines for ploting
+  R = 6378206.4
+  origin = origin*deg2rad
+  x = R*(lon*deg2rad-origin[0])*np.cos(origin[1])
+  y = R*lat*deg2rad
+
+  return x,y
+
+##############################################################
+
+def get_data_inside_box(lon,lat,data,box):
+
+  # Find indicies of coordinates inside bounding box
+  lon_idx, = np.where((lon > box[0]) & (lon < box[1]))
+  lat_idx, = np.where((lat > box[2]) & (lat < box[3]))
+  
+  # Get region data inside bounding box
+  lon_region = lon[lon_idx]
+  lat_region = lat[lat_idx]
+  latlon_idx = np.ix_(lat_idx,lon_idx)
+  dtype =  type(data)
+  try:     # Numpy indexing
+    z_region = data[latlon_idx]
+  except:  # NetCDF indexing
+    z_region = data[lat_idx,lon_idx]
+
+  return (lon_region,lat_region,z_region)
+
+##############################################################
+
+def plot_coarse_coast(plot_box):
+
   m = Basemap(projection='cyl',llcrnrlat=plot_box[2],urcrnrlat=plot_box[3],\
               llcrnrlon=plot_box[0],urcrnrlon=plot_box[1],resolution='c')
- 
-  # Create the background cell width array 
-  lon_grd,lat_grd,cell_width = create_background_mesh(grd_box,ddeg,mesh_type)
- 
-  # Get coastlines from bathy/topo  data set   
-  coastlines = extract_coastlines(data_path+nc_file,region_box)
-  
-  # Compute distance from background grid points to coastline 
-  D = distance_to_coast(coastlines,lon_grd,lat_grd,origin)
-  
-  # Blend coastline and background resolution, save cell_width array as .mat file  
-  compute_cell_width(D,cell_width)
+  m.drawcoastlines()
+
+##############################################################
+
+def plot_region_box(box,color):
+  ls = color+'-'
+  plt.plot([box[0],box[1]],[box[2],box[2]],ls)
+  plt.plot([box[1],box[1]],[box[2],box[3]],ls)
+  plt.plot([box[1],box[0]],[box[3],box[3]],ls)
+  plt.plot([box[0],box[0]],[box[3],box[2]],ls)
 
 
-## Incorporate later for depth and slope dependent resolution
+######################################################################################
+#  Incorporate later for depth and slope dependent resolution
+######################################################################################
 
+
+## 
 ## Interpolate bathymetry onto background grid
 #Lon_grd = Lon_grd*deg2rad
 #Lat_grd = Lat_grd*deg2rad
@@ -344,7 +400,7 @@ if __name__ == "__main__":
 #  plt.figure()
 #  levels = np.linspace(0,11000,100)
 #  plt.contourf(lon_grd,lat_grd,bathy_grd,levels=levels)
-#  m.drawcoastlines()
+#  plot_coarse_coast(plot_box)
 #  plt.colorbar()
 #  plt.axis('equal')
 #  plt.savefig('bckgnd_grid_bathy.png',bbox_inches='tight')
@@ -358,7 +414,7 @@ if __name__ == "__main__":
 #if plot_option:
 #  plt.figure()
 #  plt.contourf(lon_grd,lat_grd,1/dbathy_grd)
-#  m.drawcoastlines()
+#  plot_coarse_coast(plot_box)
 #  plt.colorbar()
 #  plt.axis('equal')
 #  plt.savefig('bckgnd_grid_bathy_grad.png',bbox_inches='tight')
