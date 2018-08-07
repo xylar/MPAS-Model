@@ -74,3 +74,6 @@ src/core_*/inc
 *.jig
 *.log
 *.msh
+
+# Editor recovery files
+*.swp
