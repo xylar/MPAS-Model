@@ -17,12 +17,12 @@ deg2rad = np.pi/180
 rad2deg = 180/np.pi
 
 ######################################################################################
-# Bounding box  declarations
+# Bounding box declarations (for coastal refinements)
 ######################################################################################
 
-################
+#---------------
 # Region boxes
-################
+#---------------
 
 # Bays and estuaries
 Delaware_Bay =  {"include":[np.array([-75.61903,-74.22, 37.767484, 40.312747])],
@@ -32,24 +32,21 @@ Galveston_Bay = {"include":[np.array([-95.45,-94.4, 29, 30])],
 
 # Coastlines
 US_East_Coast = {"include":[np.array([-81.7,-62.3,25.1,46.24])],
-                 "exclude":[np.array([-66.0,-64.0,31.5,33.0]),     # Bermuda
-                             np.array([-79.75,-70.0,20.0,28.5])]}  # Bahamas
-US_Gulf_Coast = {"include":[
-                            np.array([-98.0,-80.0,24.0,31.0]),     
-                            np.array([-91.0,-86.0,20.0,22.0]) # Yucatan
+                 "exclude":[np.array([-66.0,-64.0,31.5,33.0]),    # Bermuda
+                             np.array([-79.75,-70.0,20.0,28.5])]} # Bahamas
+US_Gulf_Coast = {"include":[np.array([-98.0,-80.0,24.0,31.0]),     
+                            np.array([-91.0,-86.0,20.0,22.0])     # Yucatan
                            ],   
                  "exclude":[]}
 
-US_West_Coast = {"include":[
-                            np.array([-127.0,-116.0,32.5,49.0]),
-                            np.array([-117.5,-109.0,23.0,32.5]) # Baja
+US_West_Coast = {"include":[np.array([-127.0,-116.0,32.5,49.0]),
+                            np.array([-117.5,-109.0,23.0,32.5])   # Baja
                             ],
                  "exclude":[np.array([-116.5,-115.0,32.8,33.8]),  # Salton Sea
                             np.array([-120.5,-116.5,35.5,40.5])]} # Lake Tahoe, etc.
-Alaska        = {"include":[
-                            np.array([-170.0,-141.0,49.0,72.0]),
-                            np.array([-141.0,-129.5,49.0,61.0]),
-                            np.array([-129.5,-121.0,49.0,55.0]) # Connects AK to CA
+Alaska        = {"include":[np.array([-170.0,-141.0,49.0,72.0]),
+                            np.array([-141.0,-129.5,49.0,61.0]),  # Southeast
+                            np.array([-129.5,-121.0,49.0,55.0])   # Connects AK to CA
                            ],
                  "exclude":[]}
 
@@ -66,9 +63,9 @@ Continental_US["include"].extend(CONUS["include"])
 Continental_US["include"].extend(Alaska["include"])
 Continental_US["exclude"].extend(CONUS["exclude"])
 
-#################
+#----------------
 # Plotting boxes
-#################
+#----------------
 
 Western_Atlantic = np.array([-98.186645, -59.832744, 7.791301 ,45.942453])
 Contiguous_US = np.array([-132.0,-59.832744,7.791301,51.0])
@@ -116,7 +113,7 @@ params = {
 # Functions
 ######################################################################################
 
-def coastal_refined_mesh(params):
+def coastal_refined_mesh(params): #{{{
 
   # Create the background cell width array 
   lon_grd,lat_grd,cell_width = create_background_mesh(params["grd_box"],params["ddeg"],params["mesh_type"],params["dx_max"],
@@ -134,15 +131,16 @@ def coastal_refined_mesh(params):
   cell_width = compute_cell_width(D,cell_width,params["dx_min"],params["trans_start"],params["trans_width"],
                                   params["plot_option"],params["plot_box"],lon_grd,lat_grd,coastlines)
 
-  ## Save matfile
-  io.savemat('cellWidthVsLatLon.mat',mdict={'cellWidth':cell_width/km,'lon':lon_grd,'lat':lat_grd})
+  # Save matfile
+  #save_matfile(cell_width/km,lon_grd,lat_grd)
 
-  #return (cell_width,lon_grd,lat_grd)
+  return (cell_width,lon_grd,lat_grd) 
+  #}}}
 
 ##############################################################
 
-def create_background_mesh(grd_box,ddeg,mesh_type,dx_max,
-                           plot_option=False,plot_box=[]):
+def create_background_mesh(grd_box,ddeg,mesh_type,dx_max,  #{{{
+                           plot_option=False,plot_box=[]): 
 
   # Create cell width background grid
   lat_grd = np.arange(grd_box[2],grd_box[3],ddeg)
@@ -166,12 +164,12 @@ def create_background_mesh(grd_box,ddeg,mesh_type,dx_max,
     plt.colorbar()
     plt.savefig('bckgnd_grid_cell_width.png',bbox_inches='tight')
 
-  return (lon_grd,lat_grd,cell_width)
+  return (lon_grd,lat_grd,cell_width) #}}}
 
 ##############################################################
 
-def extract_coastlines(nc_file,region_box,z_contour=0,n_longest=10,
-                       plot_option=False,plot_box=[]):
+def extract_coastlines(nc_file,region_box,z_contour=0,n_longest=10, #{{{
+                       plot_option=False,plot_box=[]): 
 
   # Open NetCDF file and read cooordintes
   nc_fid = Dataset(nc_file,"r")
@@ -244,11 +242,11 @@ def extract_coastlines(nc_file,region_box,z_contour=0,n_longest=10,
     plt.axis('equal')
     plt.savefig('bathy_coastlines.png',bbox_inches='tight')
 
-  return coastlines
+  return coastlines #}}}
 
 ##############################################################
 
-def distance_to_coast(coastlines,lon_grd,lat_grd,origin,nn_search,
+def distance_to_coast(coastlines,lon_grd,lat_grd,origin,nn_search, #{{{
                       plot_option=False,plot_box=[]):
 
   # Convert to x,y and create kd-tree
@@ -298,11 +296,11 @@ def distance_to_coast(coastlines,lon_grd,lat_grd,origin,nn_search,
     plt.axis('equal')
     plt.savefig('distance.png',bbox_inches='tight')
 
-  return D
+  return D #}}}
 
 ##############################################################
 
-def compute_cell_width(D,cell_width,dx_min,trans_start,trans_width,
+def compute_cell_width(D,cell_width,dx_min,trans_start,trans_width, #{{{
                        plot_option=False,plot_box=[],lon_grd=[],lat_grd=[],coastlines=[]):
 
   # Compute cell width based on distance
@@ -334,7 +332,13 @@ def compute_cell_width(D,cell_width,dx_min,trans_start,trans_width,
     plt.axis('equal')
     plt.savefig('cell_width.png',bbox_inches='tight')
 
-  return cell_width
+  return cell_width #}}}
+
+##############################################################
+
+def save_matfile(cell_width,lon,lat):
+
+  io.savemat('cellWidthVsLatLon.mat',mdict={'cellWidth':cell_width,'lon':lon,'lat':lat})
 
 ##############################################################
 
