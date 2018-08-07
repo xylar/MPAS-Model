@@ -14,8 +14,7 @@ sys.path.append(".")
 import os
 import subprocess
 import scipy.io as sio
-#import define_base_mesh
-#import coastal_mesh_definition_tools as cmdt
+import define_base_mesh
 
 def removeFile(fileName):
     try:
@@ -23,10 +22,9 @@ def removeFile(fileName):
     except OSError:
         pass
 
-#print 'Step 1. Build cellWidth array as function of latitude and longitude'
-#cellWidth,lon,lat = define_base_mesh.cellWidthVsLatLon()
-#cellWidth,lon,lat = cmdt.coastal_refined_mesh(cmdt.params)
-#sio.savemat('cellWidthVsLatLon.mat',{'cellWidth':cellWidth,'lon':lon,'lat':lat})
+print 'Step 1. Build cellWidth array as function of latitude and longitude'
+cellWidth,lon,lat = define_base_mesh.cellWidthVsLatLon()
+sio.savemat('cellWidthVsLatLon.mat',{'cellWidth':cellWidth,'lon':lon,'lat':lat})
 
 print 'Step 2. Build mesh using JIGSAW' 
 args = ["octave","--silent","--eval",
