@@ -31,6 +31,7 @@ mesh_converter = /turquoise/usr/projects/climate/sbrus/MPAS-Tools/mesh_tools/mes
 cell_culler    = /turquoise/usr/projects/climate/sbrus/MPAS-Tools/mesh_tools/mesh_conversion_tools/MpasCellCuller.x
 mask_creator   = /turquoise/usr/projects/climate/sbrus/MPAS-Tools/mesh_tools/mesh_conversion_tools/MpasMaskCreator.x
 mesh_generator = FULL_PATH_TO_EXECUTABLE_MESH_GENERATION_SCRIPT
+mpi_runtime = /usr/bin/srun
 
 # The paths section describes paths that are used within the ocean core test
 # cases.
@@ -47,4 +48,4 @@ geometric_features = /turquoise/usr/projects/climate/mpeterse/repos/geometric_fe
 jigsaw-geo-matlab =/turquoise/usr/projects/climate/sbrus/jigsaw-geo-matlab 
 mesh_database = /usr/projects/regionalclimate/COMMON_MPAS/ocean/grids/mesh_database 
 initial_condition_database = /usr/projects/regionalclimate/COMMON_MPAS/ocean/grids/initial_condition_database 
-bathymery_database = /turquoise/usr/projects/climate/sbrus/bathy_data
+bathymetry_database = /turquoise/usr/projects/climate/sbrus/bathy_data
