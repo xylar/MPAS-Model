@@ -49,3 +49,4 @@ jigsaw-geo-matlab =/turquoise/usr/projects/climate/sbrus/jigsaw-geo-matlab
 mesh_database = /usr/projects/regionalclimate/COMMON_MPAS/ocean/grids/mesh_database 
 initial_condition_database = /usr/projects/regionalclimate/COMMON_MPAS/ocean/grids/initial_condition_database 
 bathymetry_database = /turquoise/usr/projects/climate/sbrus/bathy_data
+jigsaw_to_MPAS = /turquoise/usr/projects/climate/sbrus/MPAS-Model/testing_and_setup/compass/ocean/jigsaw_to_MPAS
