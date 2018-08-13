@@ -10,12 +10,10 @@
 	<namelist name="namelist.ocean" mode="forward">
 		<template file="template_forward.xml" path_base="script_configuration_dir"/>
 		<template file="template_forward.xml" path_base="script_resolution_dir"/>
-		<option name="config_run_duration">'00-00-01_00:00:00'</option>
-		<option name="config_dt">'00:01:00'</option>
-		<option name="config_btr_dt">'00:00:03'</option>
-		<option name="config_write_output_on_startup">.false.</option>
+		<option name="config_run_duration">'00-00-10_00:00:00'</option>
+		<option name="config_dt">'00:20:00'</option>
 		<option name="config_Rayleigh_friction">.true.</option>
-		<option name="config_Rayleigh_damping_coeff">1.0e-3</option>
+		<option name="config_Rayleigh_damping_coeff">1.0e-4</option>
 		<template file="global_stats.xml" path_base="script_core_dir" path="templates/analysis_members"/>
 	</namelist>
 
@@ -31,7 +29,7 @@
 			<attribute name="output_interval">00-00-10_00:00:00</attribute>
 		</stream>
 		<stream name="restart">
-			<attribute name="output_interval">00-00-01_00:00:00</attribute>
+			<attribute name="output_interval">00-00-10_00:00:00</attribute>
 		</stream>
 
 		<template file="forcing_data.xml" path_base="script_core_dir" path="templates/streams"/>
@@ -45,6 +43,6 @@
 			<argument flag="graph.info">480</argument>
 		</step>
 
-		<model_run procs="480" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
+		<model_run procs="128" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
 	</run_script>
 </config>
