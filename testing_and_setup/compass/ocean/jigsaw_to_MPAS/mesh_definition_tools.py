@@ -92,8 +92,7 @@ Entire_Globe = np.array([-180,180,-90,90])
 params = {
 
 # Path to bathymetry data and name of file
-"data_path": "/users/sbrus/climate/bathy_data/SRTM15_plus/",
-"nc_file": "earth_relief_15s.nc",
+"nc_file": "/users/sbrus/climate/bathy_data/SRTM15_plus/earth_relief_15s.nc",
 
 # Bounding box of coastal refinement region
 "region_box": Continental_US,
@@ -103,12 +102,15 @@ params = {
 "z_contour": 0.0,
 "n_longest": 10,
 
-# Mesh parameters
+# Global mesh parameters
 "grd_box": Entire_Globe ,
 "ddeg": .1,
-"mesh_type": 'EC',     #'EC' (defaults to 60to30), 'QU' (uses dx_max)
-"dx_max": 60*km,
-"dx_min": 10*km,
+"mesh_type": 'EC',     #'EC' (defaults to 60to30), 'QU' (uses dx_max_global), 'RRS' (uses dx_max_global and dx_min_global)
+"dx_max_global": 30*km,
+"dx_min_global": 10*km,
+
+# Coastal mesh parameters
+"dx_min_coastal": 10*km,
 "trans_width": 600*km,
 "trans_start": 400*km,
 
@@ -241,39 +243,39 @@ def  EC_CellWidthVsLat(lat):
 
   return cellWidthOut
 
-#
-#def  RRS_CellWidthVsLat(lat, cellWidthEq, cellWidthPole)
-#'''
-#RRS_CellWidthVsLat - Create Rossby Radius Scaling as a function of lat.
-#This is inted as part of the workflow to make an MPAS global mesh.
-#
-#Syntax: cellWidthOut = RRS_CellWidthVsLat(lat, cellWidthEq, cellWidthPole)
-#
-#Inputs:
-#   lat - vector of length n, with entries between -90 and 90, degrees
-#   cellWidthEq - Cell width at the equator, km
-#   cellWidthPole - Cell width at the poles, km
-#
-#Outputs:
-#   RRS_CellWidth - vector of length n, entries are cell width as a function of lat
-#
-#Example: 
-#   RRS18to6 = RRS_CellWidthVsLat(lat,18,6)
-#
-#Author: Mark Petersen
-#Los Alamos National Laboratory
-#March 2018 # Last revision: 4/20/2018
-#'''
-#
-#degToRad = pi/180.0 # convert degrees to radians
-#gamma = (cellWidthPole/cellWidthEq)^4 #  ratio between high and low resolution
-#densityRRS = zeros(size(lat))
-#cellWidthOut = zeros(size(lat))
-#for j in range(length(lat)
-#  densityRRS[j] = (1.0-gamma)*sin(abs(lat[j])*degToRad)^4 + gamma
-#  cellWidthOut[j] = cellWidthPole/densityRRS[j]^0.25
-#
-#
+
+def  RRS_CellWidthVsLat(lat, cellWidthEq, cellWidthPole):
+  '''
+  RRS_CellWidthVsLat - Create Rossby Radius Scaling as a function of lat.
+  This is inted as part of the workflow to make an MPAS global mesh.
+  
+  Syntax: cellWidthOut = RRS_CellWidthVsLat(lat, cellWidthEq, cellWidthPole)
+  
+  Inputs:
+     lat - vector of length n, with entries between -90 and 90, degrees
+     cellWidthEq - Cell width at the equator, km
+     cellWidthPole - Cell width at the poles, km
+  
+  Outputs:
+     RRS_CellWidth - vector of length n, entries are cell width as a function of lat
+  
+  Example: 
+     RRS18to6 = RRS_CellWidthVsLat(lat,18,6)
+  
+  Author: Mark Petersen
+  Los Alamos National Laboratory
+  March 2018 # Last revision: 4/20/2018
+  '''
+  
+  degToRad = np.pi/180.0                 # convert degrees to radians
+  gamma = (cellWidthPole/cellWidthEq)**4 #  ratio between high and low resolution
+  densityRRS = np.zeros(lat.shape)
+  cellWidthOut = np.zeros(lat.shape)
+  for j in range(lat.size):
+    densityRRS[j] = (1.0-gamma)*np.sin(np.abs(lat[j])*degToRad)**4 + gamma
+    cellWidthOut[j] = cellWidthPole/densityRRS[j]**0.25
+  
+
 #def  AtlanticPacificGrid(lon, lat, cellWidthInAtlantic, cellWidthInPacific)
 #'''
 #AtlanticPacificGrid: combine two cell width distributions using a tanh function.
@@ -430,7 +432,7 @@ def  EC_CellWidthVsLat(lat):
 def coastal_refined_mesh(params): #{{{
 
   # Create the background cell width array 
-  lon_grd,lat_grd,cell_width = create_background_mesh(params["grd_box"],params["ddeg"],params["mesh_type"],params["dx_max"],
+  lon_grd,lat_grd,cell_width = create_background_mesh(params["grd_box"],params["ddeg"],params["mesh_type"],params["dx_min_global"],params["dx_max_global"],
                                                       params["plot_option"],params["plot_box"])
  
   # Get coastlines from bathy/topo  data set   
@@ -442,7 +444,7 @@ def coastal_refined_mesh(params): #{{{
                         params["plot_option"],params["plot_box"])
   
   # Blend coastline and background resolution, save cell_width array as .mat file  
-  cell_width = compute_cell_width(D,cell_width,params["dx_min"],params["trans_start"],params["trans_width"],
+  cell_width = compute_cell_width(D,cell_width,params["dx_min_coastal"],params["trans_start"],params["trans_width"],
                                   params["plot_option"],params["plot_box"],lon_grd,lat_grd,coastlines)
 
   # Save matfile
@@ -453,7 +455,7 @@ def coastal_refined_mesh(params): #{{{
 
 ##############################################################
 
-def create_background_mesh(grd_box,ddeg,mesh_type,dx_max,  #{{{
+def create_background_mesh(grd_box,ddeg,mesh_type,dx_min,dx_max,  #{{{
                            plot_option=False,plot_box=[]): 
 
   # Create cell width background grid
@@ -465,11 +467,13 @@ def create_background_mesh(grd_box,ddeg,mesh_type,dx_max,  #{{{
   
   # Assign background grid cell width values
   if mesh_type == 'QU':
-    cell_width = dx_max*np.ones(D.shape)
+    cell_width_lat = dx_max*np.ones(lat_grd.size)
   elif mesh_type == 'EC':
     cell_width_lat = EC_CellWidthVsLat(lat_grd)
-    cell_width = np.tile(cell_width_lat,(nx_grd,1)).T*km
-  
+  elif mesh_type == 'RRS':
+    cell_width_lat = RRS_CellWidthVsLat(lat_grd,dx_max,dx_min)  
+  cell_width = np.tile(cell_width_lat,(nx_grd,1)).T*km
+
   # Plot background cell width
   if plot_option:
     plt.figure()
