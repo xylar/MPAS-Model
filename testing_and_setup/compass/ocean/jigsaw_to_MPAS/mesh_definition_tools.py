@@ -24,9 +24,9 @@ import pprint
 plt.switch_backend('agg')
 
 # Constants
-km = 1000
-deg2rad = np.pi/180
-rad2deg = 180/np.pi
+km = 1000.0
+deg2rad = np.pi/180.0
+rad2deg = 180.0/np.pi
 
 ######################################################################################
 # Bounding box declarations (for coastal refinements)
@@ -106,13 +106,13 @@ params = {
 "grd_box": Entire_Globe ,
 "ddeg": .1,
 "mesh_type": 'EC',     #'EC' (defaults to 60to30), 'QU' (uses dx_max_global), 'RRS' (uses dx_max_global and dx_min_global)
-"dx_max_global": 30*km,
-"dx_min_global": 10*km,
+"dx_max_global": 30.0*km,
+"dx_min_global": 10.0*km,
 
 # Coastal mesh parameters
-"dx_min_coastal": 10*km,
-"trans_width": 600*km,
-"trans_start": 400*km,
+"dx_min_coastal": 10.0*km,
+"trans_width": 600.0*km,
+"trans_start": 400.0*km,
 
 # Bounding box of plotting region
 "plot_box": North_America,
@@ -268,15 +268,12 @@ def  RRS_CellWidthVsLat(lat, cellWidthEq, cellWidthPole):
   '''
   
   degToRad = np.pi/180.0                 # convert degrees to radians
-  gamma = (cellWidthPole/cellWidthEq)**4 #  ratio between high and low resolution
-  densityRRS = np.zeros(lat.shape)
-  cellWidthOut = np.zeros(lat.shape)
-  for j in range(lat.size):
-    densityRRS[j] = (1.0-gamma)*np.sin(np.abs(lat[j])*degToRad)**4 + gamma
-    cellWidthOut[j] = cellWidthPole/densityRRS[j]**0.25
-  
+  gamma = (cellWidthPole/cellWidthEq)**4.0 #  ratio between high and low resolution
 
-#def  AtlanticPacificGrid(lon, lat, cellWidthInAtlantic, cellWidthInPacific)
+  densityRRS = (1.0-gamma)*np.power(np.sin(np.absolute(lat)*degToRad),4.0) + gamma
+  cellWidthOut = cellWidthPole/np.power(densityRRS,0.25)
+  return cellWidthOut  
+
 #'''
 #AtlanticPacificGrid: combine two cell width distributions using a tanh function.
 #This is inted as part of the workflow to make an MPAS global mesh.
@@ -471,11 +468,16 @@ def create_background_mesh(grd_box,ddeg,mesh_type,dx_min,dx_max,  #{{{
   elif mesh_type == 'EC':
     cell_width_lat = EC_CellWidthVsLat(lat_grd)
   elif mesh_type == 'RRS':
-    cell_width_lat = RRS_CellWidthVsLat(lat_grd,dx_max,dx_min)  
+    cell_width_lat = RRS_CellWidthVsLat(lat_grd,dx_max/km,dx_min/km)  
   cell_width = np.tile(cell_width_lat,(nx_grd,1)).T*km
 
   # Plot background cell width
   if plot_option:
+
+    plt.figure()
+    plt.plot(lat_grd,cell_width_lat)
+    plt.savefig('bckgrnd_grid_cell_width_vs_lat.png')
+
     plt.figure()
     plt.contourf(lon_grd,lat_grd,cell_width)
     plot_coarse_coast(plot_box)
