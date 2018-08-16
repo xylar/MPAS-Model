@@ -464,7 +464,7 @@ def create_background_mesh(grd_box,ddeg,mesh_type,dx_min,dx_max,  #{{{
   
   # Assign background grid cell width values
   if mesh_type == 'QU':
-    cell_width_lat = dx_max*np.ones(lat_grd.size)
+    cell_width_lat = dx_max/km*np.ones(lat_grd.size)
   elif mesh_type == 'EC':
     cell_width_lat = EC_CellWidthVsLat(lat_grd)
   elif mesh_type == 'RRS':
