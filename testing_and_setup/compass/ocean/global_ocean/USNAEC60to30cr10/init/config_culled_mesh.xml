@@ -18,7 +18,7 @@
 			<argument flag="--with_critical_passages"></argument>
 		</step>
   
-		<step executable="./inject_bathymetry">
+		<step executable="./inject_bathymetry.py">
 			<argument flag="culled_mesh_final.nc"></argument>
 		</step>
 	</run_script>

@@ -33,8 +33,7 @@
 	<add_link source_path="initial_condition_database" source="PTemp.Jan_p3.filled.mpas100levs.160127.nc" dest="temperature.nc"/>
 	<add_link source_path="initial_condition_database" source="Salt.Jan_p3.noBlackCaspian.filled.mpas100levs.160127.nc" dest="salinity.nc"/>
 	<add_link source_path="initial_condition_database" source="windStress.ncep_1958-2000avg.interp3600x2431.151106.nc" dest="wind_stress.nc"/>
-        <add_link source_path="initial_condition_database" source="ETOPO2v2c_f4_151106.nc" dest="topography.nc"/>
-	<!-- <add_link source_path="bathymetry_database" source="SRTM15_plus/earth_relief_15s.nc" dest="topography.nc"/> -->
+  <add_link source_path="bathymetry_database" source="SRTM15_plus/earth_relief_15s_xy_downsampled4x_filled.nc" dest="topography.nc"/> 
 	<add_link source_path="initial_condition_database" source="chlorophyllA_monthly_averages_1deg.151201.nc" dest="swData.nc"/>
 	<add_link source_path="mpas_tools" source="visualization/paraview_vtk_field_extractor/paraview_vtk_field_extractor.py" dest="paraview_vtk_field_extractor.py"/>
 
@@ -44,6 +43,7 @@
 		<option name="config_global_ocean_depth_file">'layer_depth.nc'</option>
 		<option name="config_global_ocean_minimum_depth">10</option>
 		<option name="config_global_ocean_deepen_critical_passages">.false.</option>
+		<option name="config_global_ocean_cull_inland_seas ">.true.</option>
 	</namelist>
 
 	<streams name="streams.ocean" keep="immutable" mode="init">
@@ -53,8 +53,8 @@
 
 	<run_script name="run.py">
 		<step executable="./metis">
-			<argument flag="graph.info">36</argument>
+			<argument flag="graph.info">6</argument>
 		</step>
-		<model_run procs="36" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
+		<model_run procs="6" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
 	</run_script>
 </config>

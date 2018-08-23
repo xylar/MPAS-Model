@@ -27,7 +27,7 @@ cellWidth,lon,lat = define_base_mesh.cellWidthVsLatLon()
 sio.savemat('cellWidthVsLatLon.mat',{'cellWidth':cellWidth,'lon':lon,'lat':lat})
 
 print 'Step 2. Build mesh using JIGSAW' 
-args = ["octave","--silent","--eval",
+args = ["octave","--eval",
         "jigsaw_driver"]
 print "running", ' '.join(args)
 subprocess.check_call(args, env=os.environ.copy())

@@ -39,6 +39,10 @@ rad2deg = 180.0/np.pi
 # Bays and estuaries
 Delaware_Bay =  {"include":[np.array([-75.61903,-74.22, 37.767484, 40.312747])],
                  "exclude":[]}
+
+Delaware_Bay_Small =  {"include":[np.array([-75.811561, -74.566912, 38.579664, 39.948713])],
+                 "exclude":[]}
+
 Galveston_Bay = {"include":[np.array([-95.45,-94.4, 29, 30])],
                  "exclude":[]}
 
@@ -92,7 +96,7 @@ Entire_Globe = np.array([-180,180,-90,90])
 params = {
 
 # Path to bathymetry data and name of file
-"nc_file": "/users/sbrus/climate/bathy_data/SRTM15_plus/earth_relief_15s.nc",
+"nc_file": "/Users/pwolfram/Documents/MPAS_development/bathy_data/SRTM15_plus/earth_relief_15s.nc",
 
 # Bounding box of coastal refinement region
 "region_box": Continental_US,

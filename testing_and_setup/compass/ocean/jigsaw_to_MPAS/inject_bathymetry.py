@@ -103,12 +103,17 @@ if __name__ == "__main__":
     nc_vars = nc_mesh.variables.keys()
     if 'bathymetry' not in nc_vars:
       nc_mesh.createVariable('bathymetry','f8',('nCells'))
-    if 'cullCell' not in nc_vars: 
+    if 'cullCell' not in nc_vars:
       nc_mesh.createVariable('cullCell','i',('nCells'))
 
     # Write to mesh file
-    nc_mesh.variables['bathymetry'][:] = bathymetry 
-    nc_mesh.variables['cullCell'][:] = nc_mesh.variables['bathymetry'][:] > 20.0
+    maxelevation = 0.0 #20.0
+    nc_mesh.variables['bathymetry'][:] = bathymetry
+    nc_mesh.variables['cullCell'][:] = nc_mesh.variables['bathymetry'][:] > maxelevation
+
+    # make preservation mask for floodplain
+    nc_mesh.createVariable('cellSeedMask','i',('nCells'))
+    nc_mesh.variables['cellSeedMask'][:] = nc_mesh.variables['bathymetry'][:] < maxelevation
     nc_mesh.close()
 
 
