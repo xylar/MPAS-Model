@@ -101,19 +101,19 @@ if __name__ == "__main__":
 
     # Create new NetCDF variables in mesh file, if necessary
     nc_vars = nc_mesh.variables.keys()
-    if 'bathymetry' not in nc_vars:
-      nc_mesh.createVariable('bathymetry','f8',('nCells'))
+    if 'bottomDepth' not in nc_vars:
+      nc_mesh.createVariable('bottomDepth','f8',('nCells'))
     if 'cullCell' not in nc_vars:
       nc_mesh.createVariable('cullCell','i',('nCells'))
 
     # Write to mesh file
     maxelevation = 0.0 #20.0
-    nc_mesh.variables['bathymetry'][:] = bathymetry
-    nc_mesh.variables['cullCell'][:] = nc_mesh.variables['bathymetry'][:] > maxelevation
+    nc_mesh.variables['bottomDepth'][:] = -bathymetry
+    nc_mesh.variables['cullCell'][:] = -nc_mesh.variables['bottomDepth'][:] > maxelevation
 
     # make preservation mask for floodplain
     nc_mesh.createVariable('cellSeedMask','i',('nCells'))
-    nc_mesh.variables['cellSeedMask'][:] = nc_mesh.variables['bathymetry'][:] < maxelevation
+    nc_mesh.variables['cellSeedMask'][:] = -nc_mesh.variables['bottomDepth'][:] < maxelevation
     nc_mesh.close()
 
 
