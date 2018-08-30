@@ -129,10 +129,8 @@ module ocn_time_integration_rk4
       logical, pointer :: config_disable_vel_all_tend
       logical, pointer :: config_disable_tr_all_tend
       real (kind=RKIND), pointer :: config_mom_del4
-      logical, pointer :: config_use_wetting_drying, config_verify_not_dry
-      logical, pointer :: config_use_wetting_drying, config_verify_not_dry, config_prevent_drying
+      real (kind=RKIND), pointer :: config_drying_min_cell_height
       logical, pointer :: config_use_wetting_drying, config_verify_not_dry, config_prevent_drying, config_zero_drying_velocity
-      real (kind=RKIND), pointer :: config_mom_del4, config_drying_min_cell_height
       character (len=StrKIND), pointer :: config_land_ice_flux_mode
 
       ! State indices

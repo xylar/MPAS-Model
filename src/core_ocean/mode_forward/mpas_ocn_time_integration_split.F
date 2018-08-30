@@ -41,7 +41,6 @@ module ocn_time_integration_split
    use ocn_vmix
    use ocn_time_average_coupled
    use ocn_wetting_drying
-   use ocn_forward_mode
 
    use ocn_effective_density_in_land_ice
 
