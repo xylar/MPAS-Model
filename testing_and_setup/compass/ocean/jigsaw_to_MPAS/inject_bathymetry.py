@@ -92,12 +92,12 @@ if __name__ == "__main__":
 
     # Interpolate bathymetry on to mesh points
     if os.path.isfile("earth_relief_15s.nc"):
-      bathymetry = interpolate_SRTM(lon_mesh,lat_mesh)
+        bathymetry = interpolate_SRTM(lon_mesh,lat_mesh)
     elif os.path.isfile("topo.msh"):
-      bathymetry = interpolate_topomsh(lon_mesh,lat_mesh)
+        bathymetry = interpolate_topomsh(lon_mesh,lat_mesh)
     else:
-      print "Bathymetry data file not found"
-      raise SystemExit(0)
+        print "Bathymetry data file not found"
+        raise SystemExit(0)
 
     # Create new NetCDF variables in mesh file, if necessary
     nc_vars = nc_mesh.variables.keys()
@@ -107,12 +107,16 @@ if __name__ == "__main__":
       nc_mesh.createVariable('cullCell','i',('nCells'))
 
     # Write to mesh file
-    maxelevation = 0.0 #20.0
+    if len(sys.argv) <= 2:
+        maxelevation = 0.0 #20.0
+    else:
+        maxelevation = float(sys.argv[2])
     nc_mesh.variables['bottomDepth'][:] = -bathymetry
     nc_mesh.variables['cullCell'][:] = -nc_mesh.variables['bottomDepth'][:] > maxelevation
 
     # make preservation mask for floodplain
-    nc_mesh.createVariable('cellSeedMask','i',('nCells'))
+    if 'cellSeedMask' not in nc_vars:
+        nc_mesh.createVariable('cellSeedMask','i',('nCells'))
     nc_mesh.variables['cellSeedMask'][:] = -nc_mesh.variables['bottomDepth'][:] < maxelevation
     nc_mesh.close()
 
