@@ -723,6 +723,7 @@ module ocn_forward_mode
       call mpas_decomp_destroy_decomp_list(domain % decompositions)
       call mpas_pool_get_config(domain % configs, 'config_debug_split_explicit', config_debug_split_explicit)
 
+      ! assumes running on a single core
       if (config_debug_split_explicit) then
         ! close file
         flush(debugSplitExplicitUnit)

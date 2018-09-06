@@ -180,7 +180,7 @@ module ocn_time_integration_rk4
       type (field2DReal), pointer :: normalizedRelativeVorticityEdgeField, divergenceField, relativeVorticityField
 
       ! State/Tend Field Pointers
-      type (field2DReal), pointer :: normalVelocityField, layerThicknessField
+      type (field2DReal), pointer :: normalVelocityField, normalTransportVelocityField
       type (field3DReal), pointer :: tracersGroupField
 
       ! Tracer Group Iteartion
@@ -464,6 +464,11 @@ module ocn_time_integration_rk4
                    call ocn_prevent_drying_rk4(block, dt, rk_substep_weights(rk_step), config_zero_drying_velocity, err)
                    block => block % next
                  end do
+               ! exchange fields for parallelization
+               call mpas_pool_get_field(diagnosticsPool, 'normalTransportVelocity', normalTransportVelocityField)
+               call mpas_pool_get_field(statePool, 'normalVelocity', normalVelocityField, 1)
+               call mpas_dmpar_exch_halo_field(normalVelocityField)
+               call mpas_dmpar_exch_halo_field(normalTransportVelocityField)
              end if
 
              call mpas_timer_stop("RK4-prevent drying")
