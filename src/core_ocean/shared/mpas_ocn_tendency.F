@@ -223,7 +223,7 @@ contains
         tend_normalVelocity, circulation, relativeVorticity, viscosity, kineticEnergyCell, &
         normalizedRelativeVorticityEdge, normalizedPlanetaryVorticityEdge, &
         montgomeryPotential, vertAleTransportTop, divergence, vertViscTopOfEdge, &
-        inSituThermalExpansionCoeff, inSituSalineContractionCoeff
+        inSituThermalExpansionCoeff, inSituSalineContractionCoeff, wettingVelocity
       real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
 
       integer :: timeLevel
@@ -280,6 +280,7 @@ contains
       call mpas_pool_get_array(forcingPool, 'surfaceStress', surfaceStress)
       call mpas_pool_get_array(forcingPool, 'surfaceStressMagnitude', surfaceStressMagnitude)
 
+      call mpas_pool_get_array(diagnosticsPool, 'wettingVelocity', wettingVelocity)
       !
       ! velocity tendency: start accumulating tendency terms
       !
@@ -351,6 +352,14 @@ contains
                                 tend_normalVelocity, err)
       call mpas_log_write("error end")
 
+      !
+      ! velocity tendency: zero if drying
+      !
+      !$omp do schedule(runtime)
+      do iEdge = 1, nEdges
+         tend_normalVelocity(:, iEdge) = tend_normalVelocity(:, iEdge)*(1.0_RKIND - wettingVelocity(:, iEdge))
+      end do
+      !$omp end do
 
       !
       ! velocity tendency: vertical mixing d/dz( nu_v du/dz))

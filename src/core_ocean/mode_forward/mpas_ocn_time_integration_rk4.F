@@ -180,7 +180,7 @@ module ocn_time_integration_rk4
       type (field2DReal), pointer :: normalizedRelativeVorticityEdgeField, divergenceField, relativeVorticityField
 
       ! State/Tend Field Pointers
-      type (field2DReal), pointer :: normalVelocityField, normalTransportVelocityField
+      type (field2DReal), pointer :: normalVelocityField, normalTransportVelocityField, wettingVelocityField
       type (field3DReal), pointer :: tracersGroupField
 
       ! Tracer Group Iteartion
@@ -464,11 +464,13 @@ module ocn_time_integration_rk4
                    call ocn_prevent_drying_rk4(block, dt, rk_substep_weights(rk_step), config_zero_drying_velocity, err)
                    block => block % next
                  end do
-               ! exchange fields for parallelization
+               ! exchange fields for parallelization, may not be needed-- this should be checked for efficiency
                call mpas_pool_get_field(diagnosticsPool, 'normalTransportVelocity', normalTransportVelocityField)
                call mpas_pool_get_field(statePool, 'normalVelocity', normalVelocityField, 1)
                call mpas_dmpar_exch_halo_field(normalVelocityField)
                call mpas_dmpar_exch_halo_field(normalTransportVelocityField)
+               call mpas_pool_get_field(diagnosticsPool, 'wettingVelocity', wettingVelocityField)
+               call mpas_dmpar_exch_halo_field(wettingVelocityField)
              end if
 
              call mpas_timer_stop("RK4-prevent drying")
@@ -524,6 +526,24 @@ module ocn_time_integration_rk4
 
         call mpas_timer_stop("RK4 tracer prognostic halo update")
         call mpas_threading_barrier()
+
+        !! ensure drying momentum tendency is zero
+        !if (config_use_wetting_drying) then
+        !  call mpas_timer_start("RK4-prevent drying momentum tendency")
+
+        !     ! compute wetting velocity to prevent drying of cell (sets up start of next iterate to not dry)
+        !     if (config_prevent_drying) then
+        !       block => domain % blocklist
+        !         do while (associated(block))
+        !           call ocn_modify_tendencies_drying_rk4(block, dt, rk_substep_weights(rk_step), config_zero_drying_velocity, err)
+        !           block => block % next
+        !         end do
+        !     end if
+
+        !     call mpas_timer_stop("RK4-prevent drying momentum tendency")
+        !     call mpas_threading_barrier()
+        !end if
+
 
         ! Compute next substep state for velocity, thickness, and tracers.
         ! In RK4 notation, we are computing y_n + a_j k_j.
@@ -1072,6 +1092,7 @@ module ocn_time_integration_rk4
       real (kind=RKIND), dimension(:, :), pointer :: layerThicknessCur, layerThicknessProvis, layerThicknessTend
       real (kind=RKIND), dimension(:, :), pointer :: lowFreqDivergenceCur, lowFreqDivergenceProvis, lowFreqDivergenceTend
       real (kind=RKIND), dimension(:, :), pointer :: normalTransportVelocity, normalGMBolusVelocity
+      real (kind=RKIND), dimension(:, :), pointer :: wettingVelocity
 
       real (kind=RKIND), dimension(:, :, :), pointer :: tracersGroupCur, tracersGroupProvis, tracersGroupTend
 
