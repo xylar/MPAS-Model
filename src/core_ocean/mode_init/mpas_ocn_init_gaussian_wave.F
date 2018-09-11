@@ -89,12 +89,17 @@ contains
     integer :: iCell, k, idx, iEdge, iVertex
     real (kind=RKIND) :: maxBottomDepth, dlon, dlat, dw
     real (kind=RKIND), dimension(:), pointer :: interfaceLocations
+    real (kind=RKIND), parameter :: eps=1.0e-12
+    logical :: wetting
+    real (kind=RKIND) :: realbottom
 
     ! Define config variable pointers
     character (len=StrKIND), pointer :: config_init_configuration, config_vertical_grid
     integer, pointer :: config_gaussian_wave_vert_levels
     real (kind=RKIND), pointer :: config_gaussian_wave_lon_center, config_gaussian_wave_lat_center, &
       config_gaussian_wave_width, config_gaussian_wave_amplitude
+    logical, pointer :: config_use_wetting_drying
+    real (kind=RKIND), pointer :: config_drying_min_cell_height
 
     ! Define dimension pointers
     integer, pointer :: nCellsSolve, nEdgesSolve, nVerticesSolve, nVertLevels, nVertLevelsP1
@@ -127,6 +132,10 @@ contains
     call mpas_pool_get_config(ocnConfigs, 'config_gaussian_wave_width', config_gaussian_wave_width)
     call mpas_pool_get_config(ocnConfigs, 'config_gaussian_wave_amplitude', config_gaussian_wave_amplitude)
 
+    ! wetting and drying parameters
+    call mpas_pool_get_config(ocnConfigs, 'config_drying_min_cell_height', config_drying_min_cell_height)
+    call mpas_pool_get_config(ocnConfigs, 'config_use_wetting_drying', config_use_wetting_drying)
+
     ! Determine vertical grid for configuration
     call mpas_pool_get_subpool(domain % blocklist % structs, 'mesh', meshPool)
     call mpas_pool_get_array(meshPool, 'refBottomDepth', refBottomDepth)
@@ -141,7 +150,7 @@ contains
        
     ! assign config variables
     ! ! Set refBottomDepth and refZMid
-    maxBottomDepth = 1000.0_RKIND
+    maxBottomDepth = 60.0_RKIND
     nVertLevels  = config_gaussian_wave_vert_levels
     nVertLevelsP1 = nVertLevels + 1
 
@@ -206,12 +215,53 @@ contains
           ssh(iCell) = config_gaussian_wave_amplitude * exp(-(dlat**2.0_RKIND + dlon**2.0_RKIND) / &
                                                               (2.0_RKIND*dw**2.0_RKIND))
 
-          ! keep wet cells for min(maxLevelCell) = 3  (current limitation in
-          ! code: https://github.com/MPAS-Dev/MPAS/issues/1169
-          if (bottomDepth(iCell) < refBottomDepth(3)) then
-            bottomDepth(iCell) = refBottomDepth(3)
-            !ssh(iCell) = ssh(iCell) + bottomDepth(iCell) + 1.0_RKIND
-          end if
+          !! handle dry cell case to get needed layer numbers
+          !wetting = .false.
+          !if (config_use_wetting_drying) then
+          !  if (bottomDepth(iCell) < 0) then
+          !    wetting = .true.
+          !  end if
+          !end if
+
+          ! add in offset to keep elevations below 0.0
+          !bottomDepth(iCell) = bottomDepth(iCell) + 20.0_RKIND
+
+          !bottomDepth(iCell) = 10.0_RKIND + 10.0_RKIND* exp(-(dlat**2.0_RKIND + dlon**2.0_RKIND) / &
+          !                                  (2.0_RKIND*0.1_RKIND**2.0_RKIND))                      
+                                            
+          !do k = 1, maxLevelCell(iCell)
+          !  restingThickness(k, iCell) = 1.0_RKIND
+          !  layerThickness(k, iCell) = restingThickness(k, iCell)
+          !end do
+
+          !! keep wet cells for min(maxLevelCell) = 3  (current limitation in
+          !! code: https://github.com/MPAS-Dev/MPAS/issues/1169
+          !if (bottomDepth(iCell) < refBottomDepth(3)) then
+          !  if (wetting) then
+          !    realbottom = bottomDepth(iCell)
+          !  end if
+          !  bottomDepth(iCell) = refBottomDepth(3)
+          !end if
+          
+          ! initialize with constant layer thickness of 3 m globally
+          maxLevelCell(iCell) = 3
+
+          bottomDepth(iCell) = min(maxBottomDepth, max(-10.0_RKIND, bottomDepth(iCell)))
+         
+          ! make sure depth is thick enough via ssh = TOTAL_DEPTH - bottomDepth
+          ssh(iCell) = max(ssh(iCell) + bottomDepth(iCell), &
+            maxLevelCell(iCell)*(config_drying_min_cell_height + eps)) &
+            - bottomDepth(iCell)
+
+          !bottomDepth(iCell) = bottomDepth(iCell) + 12.0_RKIND
+          !ssh(iCell) = ssh(iCell) - 12.0_RKIND
+          
+          ! add in ssh perterbation
+          do k=1, maxLevelCell(iCell)
+            layerThickness(k,iCell) = 1.0_RKIND
+            !layerThickness(k,iCell) = 1.0_RKIND/float(maxLevelCell(iCell))*(ssh(iCell) + bottomDepth(iCell))
+            restingThickness(:, iCell) = layerThickness(:, iCell)
+          end do
 
           ! Set temperature
           idx = index_temperature
@@ -225,21 +275,19 @@ contains
              activeTracers(idx, k, iCell) = 33.0_RKIND
           end do
 
+          !maxLevelCell(iCell) = -1
+          !do k = 1, nVertLevels
+          !  if (refBottomDepth(k) >= bottomDepth(iCell)) then
+          !    maxLevelCell(iCell) = k
+          !    !bottomDepth(iCell) = refBottomDepth(k)
+          !    exit
+          !  end if
+          !end do
 
-
-          maxLevelCell(iCell) = -1
-          do k = 1, nVertLevels
-            if (refBottomDepth(k) >= bottomDepth(iCell)) then
-              maxLevelCell(iCell) = k
-              bottomDepth(iCell) = refBottomDepth(k)
-              exit
-            end if
-          end do
-
-          if (maxLevelCell(iCell) == -1) then
-            maxLevelCell(iCell) = nVertLevels
-            bottomDepth(iCell) = refBottomDepth( nVertLevels )
-          end if
+          !if (maxLevelCell(iCell) == -1) then
+          !  maxLevelCell(iCell) = nVertLevels
+          !  bottomDepth(iCell) = refBottomDepth( nVertLevels )
+          !end if
 
           !! Set layerThickness and restingThickness
           !call ocn_compute_layerThickness_zMid_from_bottomDepth(layerThickness(:,iCell), zMid(:,iCell), &
@@ -250,18 +298,27 @@ contains
           ! Set layerThickness and restingThickness
           ! Uniform layer thickness across lat/lon
 
-          ! build initial, unperturbed vertical grid
-          restingThickness(1, iCell) = refBottomDepth(1)
-          layerThickness(1, iCell) = restingThickness(1, iCell)
-          do k = 2, maxLevelCell(iCell)
-            restingThickness(k, iCell) = refBottomDepth(k) - refBottomDepth(k-1)
-            layerThickness(k, iCell) = restingThickness(k, iCell)
-          end do
+          !! build initial, unperturbed vertical grid
+          !restingThickness(1, iCell) = refBottomDepth(1)
+          !layerThickness(1, iCell) = restingThickness(1, iCell)
+          !do k = 2, maxLevelCell(iCell)
+          !  restingThickness(k, iCell) = refBottomDepth(k) - refBottomDepth(k-1)
+          !  layerThickness(k, iCell) = restingThickness(k, iCell)
+          !end do
 
-          ! add in ssh perterbation
-          do k=1, maxLevelCell(iCell)
-            layerThickness(k,iCell) = layerThickness(k,iCell)*(ssh(iCell) + bottomDepth(iCell))/bottomDepth(iCell)
-          end do
+          !! handle wetting / drying
+          !if (config_use_wetting_drying) then
+          !  !if ( wetting ) then
+          !    ! thin out layers to start with "dry" condition
+          !    do k=1, maxLevelCell(iCell)
+          !      restingThickness(k, iCell) = 2.0_RKIND*config_drying_min_cell_height + eps
+          !      layerThickness(k, iCell) = restingThickness(k, iCell)
+          !      !bottomDepth(iCell) = max(realbottom, -3.1_RKIND)
+          !    end do
+
+          !  !end if
+          !  bottomDepth(iCell) = bottomDepth(iCell)
+          !end if
        end do
 
 

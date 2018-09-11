@@ -16,6 +16,9 @@
 		<option name="config_time_integrator">'RK4'</option>
 		<option name="config_mom_del4">4.0e8</option>
 		<option name="config_use_mom_del4">.true.</option>
+		<option name="config_use_wetting_drying">.true.</option>
+		<option name="config_check_ssh_consistency">.false.</option>
+		<option name="config_vert_coord_movement">'impermeable_interfaces'</option>
 	</namelist>
 
 	<streams name="streams.ocean" keep="immutable" mode="forward">

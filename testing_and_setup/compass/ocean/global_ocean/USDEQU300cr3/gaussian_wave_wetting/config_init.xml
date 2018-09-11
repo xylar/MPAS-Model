@@ -11,10 +11,11 @@
 		<option name="config_ocean_run_mode">'init'</option>
 		<option name="config_write_cull_cell_mask">.false.</option>
 		<option name="config_realistic_coriolis_parameter">.true.</option>
-    <option name="config_1dCVTgenerator_stretch1">2.3</option>
-    <option name="config_1dCVTgenerator_stretch2">2.3</option>
-    <option name="config_1dCVTgenerator_dzSeed">0.01</option>
-    <option name="config_vertical_grid">1dCVTgenerator</option>
+		<option name="config_1dCVTgenerator_stretch1">2.3</option>
+		<option name="config_1dCVTgenerator_stretch2">2.3</option>
+		<option name="config_1dCVTgenerator_dzSeed">0.01</option>
+		<option name="config_vertical_grid">1dCVTgenerator</option>
+		<option name="config_use_wetting_drying">.true.</option>
 	</namelist>
 
 	<streams name="streams.ocean" keep="immutable" mode="init">
