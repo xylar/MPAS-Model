@@ -247,6 +247,10 @@ contains
           maxLevelCell(iCell) = 3
 
           bottomDepth(iCell) = min(maxBottomDepth, max(-10.0_RKIND, bottomDepth(iCell)))
+
+          if (.not. config_use_wetting_drying) then
+            bottomDepth(iCell) = max(3.0_RKIND, bottomDepth(iCell))
+          end if
          
           ! make sure depth is thick enough via ssh = TOTAL_DEPTH - bottomDepth
           ssh(iCell) = max(ssh(iCell) + bottomDepth(iCell), &
@@ -258,8 +262,9 @@ contains
           
           ! add in ssh perterbation
           do k=1, maxLevelCell(iCell)
-            layerThickness(k,iCell) = 1.0_RKIND
-            !layerThickness(k,iCell) = 1.0_RKIND/float(maxLevelCell(iCell))*(ssh(iCell) + bottomDepth(iCell))
+            !layerThickness(k,iCell) = 1.0_RKIND
+            layerThickness(k,iCell) = max(config_drying_min_cell_height + eps, &
+              1.0_RKIND/float(maxLevelCell(iCell))*(ssh(iCell) + bottomDepth(iCell)))
             restingThickness(:, iCell) = layerThickness(:, iCell)
           end do
 
