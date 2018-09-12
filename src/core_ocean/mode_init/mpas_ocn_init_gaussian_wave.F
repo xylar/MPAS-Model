@@ -147,7 +147,7 @@ contains
     ! you may restrict your case geometry as follows:
     if ( .not. on_a_sphere ) call mpas_log_write('The gaussian_wave configuration can only be applied ' &
       // 'to a spherical mesh. Exiting...', MPAS_LOG_CRIT)
-       
+
     ! assign config variables
     ! ! Set refBottomDepth and refZMid
     maxBottomDepth = 60.0_RKIND
@@ -195,7 +195,7 @@ contains
 
        call mpas_pool_get_array(verticalMeshPool, 'refZMid', refZMid)
        call mpas_pool_get_array(verticalMeshPool, 'restingThickness', restingThickness)
-      
+
        do k = 1, nVertLevels
           refBottomDepth(k) = maxBottomDepth* interfaceLocations(k+1)
           refZMid(k) = - 0.5_RKIND * (interfaceLocations(k+1) + interfaceLocations(k)) * maxBottomDepth
@@ -227,8 +227,8 @@ contains
           !bottomDepth(iCell) = bottomDepth(iCell) + 20.0_RKIND
 
           !bottomDepth(iCell) = 10.0_RKIND + 10.0_RKIND* exp(-(dlat**2.0_RKIND + dlon**2.0_RKIND) / &
-          !                                  (2.0_RKIND*0.1_RKIND**2.0_RKIND))                      
-                                            
+          !                                  (2.0_RKIND*0.1_RKIND**2.0_RKIND))
+
           !do k = 1, maxLevelCell(iCell)
           !  restingThickness(k, iCell) = 1.0_RKIND
           !  layerThickness(k, iCell) = restingThickness(k, iCell)
@@ -242,7 +242,7 @@ contains
           !  end if
           !  bottomDepth(iCell) = refBottomDepth(3)
           !end if
-          
+
           ! initialize with constant layer thickness of 3 m globally
           maxLevelCell(iCell) = 3
 
@@ -251,7 +251,7 @@ contains
           if (.not. config_use_wetting_drying) then
             bottomDepth(iCell) = max(3.0_RKIND, bottomDepth(iCell))
           end if
-         
+
           ! make sure depth is thick enough via ssh = TOTAL_DEPTH - bottomDepth
           ssh(iCell) = max(ssh(iCell) + bottomDepth(iCell), &
             maxLevelCell(iCell)*(config_drying_min_cell_height + eps)) &
@@ -259,7 +259,7 @@ contains
 
           !bottomDepth(iCell) = bottomDepth(iCell) + 12.0_RKIND
           !ssh(iCell) = ssh(iCell) - 12.0_RKIND
-          
+
           ! add in ssh perterbation
           do k=1, maxLevelCell(iCell)
             !layerThickness(k,iCell) = 1.0_RKIND
