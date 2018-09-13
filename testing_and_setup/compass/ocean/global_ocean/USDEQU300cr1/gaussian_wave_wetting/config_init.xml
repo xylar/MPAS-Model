@@ -17,6 +17,7 @@
 		<option name="config_vertical_grid">1dCVTgenerator</option>
 		<option name="config_use_wetting_drying">.true.</option>
 		<option name="config_drying_min_cell_height">1.0e-3</option>
+		<option name="config_gaussian_wave_vert_levels">3</option>
 	</namelist>
 
 	<streams name="streams.ocean" keep="immutable" mode="init">
