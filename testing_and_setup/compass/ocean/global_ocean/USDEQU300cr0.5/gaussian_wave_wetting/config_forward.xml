@@ -12,9 +12,9 @@
 		<option name="config_dt">'00:01:00'</option>
 		<option name="config_btr_dt">'0000_00:00:20'</option>
 -->
-		<option name="config_dt">'00:00:05'</option>
+		<option name="config_dt">'00:00:03'</option>
 		<option name="config_time_integrator">'RK4'</option>
-		<option name="config_mom_del4">4.0e8</option>
+		<option name="config_mom_del4">5.0e6</option>
 		<option name="config_use_mom_del4">.true.</option>
 		<option name="config_use_wetting_drying">.true.</option>
 		<option name="config_zero_drying_velocity">.true.</option>
