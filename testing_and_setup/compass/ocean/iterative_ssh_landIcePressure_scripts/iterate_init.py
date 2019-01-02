@@ -100,8 +100,11 @@ for iterIndex in range(args.first_iteration,args.iteration_count):
     logFile = open('maxDeltaSSH_%03i.log'%iterIndex,'w')
 
     indices = numpy.nonzero(landIcePressure)[0]
-    index = numpy.argmax(numpy.abs(deltaSSH[indices]))
-    iCell = indices[index]
+    if len(indices) == 0:
+        iCell = 0
+    else:
+        index = numpy.argmax(numpy.abs(deltaSSH[indices]))
+        iCell = indices[index]
     logFile.write('deltaSSHMax: %g, lon/lat: %f %f, ssh: %g, landIcePressure: %g\n'%(deltaSSH[iCell],
                                                                          180./numpy.pi*lonCell[iCell],
                                                                          180./numpy.pi*latCell[iCell],
