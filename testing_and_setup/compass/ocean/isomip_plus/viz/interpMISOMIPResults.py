@@ -332,6 +332,11 @@ for tIndex in range(nTimeOut, nTimeIn):
     days = 365*int(tIndex/12) + daysBeforeMonth[numpy.mod(tIndex, 12)]
     vars['time'][tIndex] = secPerDay*days
 
+    if dynamicTopo:
+        vars['iceDraft'][tIndex, :,:] = \
+            interpHorizOcean(inVars['timeMonthly_avg_ssh'][0,:])
+        vars['bathymetry'][tIndex, :,:] = interpHorizOcean(bathymetry)
+
     freshwaterFlux = inVars['timeMonthly_avg_landIceFreshwaterFlux'][0, :]
     inCavityFraction = inVars['timeMonthly_avg_landIceFraction'][0, :]
     inCavityMask = inCavityFraction > normalizationThreshold
