@@ -26,6 +26,7 @@ module ocn_equation_of_state
    use mpas_pool_routines
    use ocn_equation_of_state_linear
    use ocn_equation_of_state_jm
+   use ocn_equation_of_state_wright
    use ocn_constants
    use mpas_log
 
@@ -61,7 +62,8 @@ module ocn_equation_of_state
 
    integer, parameter ::        &! supported equation of state methods
       ocnEqStateTypeLinear = 1, &! linear equation of state
-      ocnEqStateTypeJM     = 2   ! Jackett-McDougall  eqn of state
+      ocnEqStateTypeJM     = 2, &! Jackett-McDougall eqn of state
+      ocnEqStateTypeWright = 3   ! Wright eqn of state
 
 !***********************************************************************
 
@@ -136,7 +138,9 @@ contains
 
       type (mpas_pool_type), pointer :: tracersPool
 
+      real (kind=RKIND), dimension(:,:), pointer :: zMid
       real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
+      integer, dimension(:), pointer :: maxLevelCell
       integer :: iCell, k, nVertLevels, indexT, indexS
       integer, pointer :: indexTptr, indexSptr, nVertLevelsPtr
       integer :: timeLevel
@@ -156,6 +160,8 @@ contains
          timeLevel = 1
       end if
 
+      call mpas_pool_get_array(diagnosticsPool, 'zMid', zMid)
+
       call mpas_pool_get_subpool  (statePool,   'tracers', &
                                                  tracersPool)
       call mpas_pool_get_array    (tracersPool, 'activeTracers', &
@@ -166,6 +172,9 @@ contains
                                                  indexSptr)
       call mpas_pool_get_dimension(meshPool,    'nVertLevels', &
                                                  nVertLevelsPtr)
+      call mpas_pool_get_array    (meshPool,    'maxLevelCell', &
+                                                 maxLevelCell)
+
       indexT      = indexTptr
       indexS      = indexSptr
       nVertLevels = nVertLevelsPtr
@@ -201,6 +210,21 @@ contains
             call ocn_equation_of_state_jm_density(nVertLevels,        &
                      nCells, kDisplaced, displacement_type,           &
                      indexT, indexS, activeTracers, density, err)
+         endif
+
+      case (ocnEqStateTypeWright)
+
+         if (present(thermalExpansionCoeff) .or. &
+             present(salineContractionCoeff)) then
+            call ocn_equation_of_state_wright_density(nVertLevels, nCells, &
+                     kDisplaced, displacement_type, indexT, indexS,        &
+                     activeTracers, zMid, maxLevelCell, density,           &
+                     thermalExpansionCoeff, salineContractionCoeff, err)
+
+         else
+            call ocn_equation_of_state_wright_density(nVertLevels, nCells, &
+                     kDisplaced, displacement_type, indexT, indexS,        &
+                     activeTracers, zMid, maxLevelCell, density, err)
          endif
 
       case default
@@ -277,10 +301,15 @@ contains
          ocnEqStateChoice  = ocnEqStateTypeJM
          call ocn_equation_of_state_jm_init(domain, err)
 
+      case ('wright', 'Wright', 'WRIGHT')
+
+         ocnEqStateChoice  = ocnEqStateTypeWright
+         call ocn_equation_of_state_jm_init(domain, err)
+
       case default
 
          call mpas_log_write(&
-         'Invalid choice for config_eos_type. Choices are: linear, jm')
+         'Invalid choice for config_eos_type. Choices are: linear, jm, wright')
          err = 1
 
       end select

@@ -12,6 +12,7 @@ OBJS = mpas_ocn_init_routines.o \
 	   mpas_ocn_equation_of_state.o \
 	   mpas_ocn_equation_of_state_jm.o \
 	   mpas_ocn_equation_of_state_linear.o \
+	   mpas_ocn_equation_of_state_wright.o \
 	   mpas_ocn_thick_hadv.o \
 	   mpas_ocn_thick_vadv.o \
 	   mpas_ocn_thick_surface_flux.o \
@@ -151,11 +152,13 @@ mpas_ocn_vmix_cvmix.o:  mpas_ocn_constants.o
 
 mpas_ocn_vmix_coefs_redi.o: mpas_ocn_constants.o
 
-mpas_ocn_equation_of_state.o: mpas_ocn_equation_of_state_jm.o mpas_ocn_equation_of_state_linear.o mpas_ocn_constants.o
+mpas_ocn_equation_of_state.o: mpas_ocn_equation_of_state_jm.o mpas_ocn_equation_of_state_linear.o mpas_ocn_equation_of_state_wright.o mpas_ocn_constants.o
 
 mpas_ocn_equation_of_state_jm.o: mpas_ocn_constants.o
 
 mpas_ocn_equation_of_state_linear.o: mpas_ocn_constants.o
+
+mpas_ocn_equation_of_state_wright.o: mpas_ocn_constants.o
 
 mpas_ocn_test.o:  mpas_ocn_constants.o
 
