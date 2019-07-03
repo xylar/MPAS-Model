@@ -69,16 +69,16 @@ contains
 !  routine ocn_vel_pressure_grad_tend
 !
 !> \brief   Computes tendency term for horizontal pressure gradient
-!> \author  Mark Petersen
-!> \date    February 2014
+!> \author  Mark Petersen, Xylar Asay-Davis
+!> \date    February 2014, modified July 2019
 !> \details
 !>  This routine computes the pressure gradient tendency for momentum
 !>  based on current state.
 !
 !-----------------------------------------------------------------------
 
-   subroutine ocn_vel_pressure_grad_tend(meshPool, pressure, montgomeryPotential, zMid, density, potentialDensity, &
-      indexT, indexS, tracers, tend, err, inSituThermalExpansionCoeff,inSituSalineContractionCoeff)!{{{
+   subroutine ocn_vel_pressure_grad_tend(meshPool, statePool, diagnosticsPool, &
+                                         timeLevelIn, tend, err)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -86,23 +86,11 @@ contains
       !
       !-----------------------------------------------------------------
 
-      integer, intent(in) :: indexT, indexS
+      type (mpas_pool_type), intent(in) :: meshPool !< Input: Mesh information
+      type (mpas_pool_type), intent(in) :: statePool !< Input: State information
+      type (mpas_pool_type), intent(in) :: diagnosticsPool !< Input: Diagnostic information
 
-      real (kind=RKIND), dimension(:,:), intent(in) :: &
-         pressure, & !< Input: Pressure field
-         montgomeryPotential, & !< Input: Mongomery potential
-         zMid, &     !< Input: z-coordinate at mid-depth of layer
-         density, &      !< Input: density
-         potentialDensity         !< Input: potentialDensity
-
-      real (kind=RKIND), dimension(:,:), intent(in), optional :: &
-         inSituThermalExpansionCoeff, &
-         inSituSalineContractionCoeff
-
-      real (kind=RKIND), dimension(:,:,:), intent(in) :: tracers
-
-      type (mpas_pool_type), intent(in) :: &
-         meshPool          !< Input: mesh information
+      integer, intent(in), optional :: timeLevelIn !< Input: Time level for state fields
 
       !-----------------------------------------------------------------
       !
@@ -127,190 +115,37 @@ contains
       !
       !-----------------------------------------------------------------
 
-      integer :: iEdge, k, cell1, cell2, iCell, kMax, nEdges
-      integer, pointer :: nVertLevels
-      integer, dimension(:), pointer :: nEdgesArray
-      integer, dimension(:), pointer :: maxLevelEdgeTop, maxLevelCell
-      integer, dimension(:,:), pointer :: cellsOnEdge, edgeMask
-
-      real (kind=RKIND), dimension(:), pointer :: dcEdge
-      real (kind=RKIND), dimension(:), allocatable :: JacobianDxDs,JacobianTz,JacobianSz,T1,T2,S1,S2
-      real (kind=RKIND), dimension(:,:), allocatable :: FXTop, work1, work2
-      real (kind=RKIND) :: invdcEdge, pGrad, sumAJTop, AJTop, FC, FCPrev, alpha, beta
-
       err = 0
 
       if (.not. pgradOn) return
 
       call mpas_timer_start("pressure grad")
 
-      call mpas_pool_get_dimension(meshPool, 'nVertLevels',nVertLevels)
-      call mpas_pool_get_dimension(meshPool, 'nEdgesArray', nEdgesArray)
-      call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
-      call mpas_pool_get_array(meshPool, 'maxLevelCell', maxLevelCell)
-      call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
-      call mpas_pool_get_array(meshPool, 'dcEdge', dcEdge)
-      call mpas_pool_get_array(meshPool, 'edgeMask', edgeMask)
+      if (config_pressure_gradient_type == 'pressure_and_zmid') then
 
-      nEdges = nEdgesArray( 1 )
-
-      if (config_pressure_gradient_type.eq.'pressure_and_zmid') then
-
-         ! pressure for generalized coordinates
-         ! -1/density_0 (grad p_k + density g grad z_k^{mid})
-
-         !$omp do schedule(runtime) private(cell1, cell2, invdcEdge, k)
-         do iEdge=1,nEdges
-            cell1 = cellsOnEdge(1,iEdge)
-            cell2 = cellsOnEdge(2,iEdge)
-            invdcEdge = 1.0_RKIND / dcEdge(iEdge)
-
-            do k=1,maxLevelEdgeTop(iEdge)
-               tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
-                 - density0Inv * ( pressure(k,cell2) - pressure(k,cell1) ) &
-                 - gdensity0Inv * 0.5_RKIND*(density(k,cell1)+density(k,cell2)) * ( zMid(k,cell2) - zMid(k,cell1) ) )
-            end do
-         end do
-         !$omp end do
+         call pressure_grad_tend_pressure_and_zmid(meshPool, statePool, diagnosticsPool, &
+                                                   tend)
 
       elseif (config_pressure_gradient_type.eq.'MontgomeryPotential') then
 
-         ! For pure isopycnal coordinates, this is just grad(M),
-         ! the gradient of Montgomery Potential
-
-         !$omp do schedule(runtime) private(cell1, cell2, invdcEdge, k)
-         do iEdge=1,nEdges
-            cell1 = cellsOnEdge(1,iEdge)
-            cell2 = cellsOnEdge(2,iEdge)
-            invdcEdge = 1.0_RKIND / dcEdge(iEdge)
-
-            do k=1,maxLevelEdgeTop(iEdge)
-               tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
-                  - ( montgomeryPotential(k,cell2) - montgomeryPotential(k,cell1) ) )
-            end do
-         end do
-         !$omp end do
+         call pressure_grad_tend_montgomery_potenial(meshPool, statePool, diagnosticsPool, &
+                                                     tend)
 
       elseif (config_pressure_gradient_type.eq.'MontgomeryPotential_and_density') then
 
-         ! This formulation has not been extensively tested and is not supported at this time.
-
-         ! This is -grad(M)+p grad(1/rho)
-         ! Where rho is the potential density.
-         ! See Bleck (2002) equation 1, and last equation in Appendix A.
-
-         !$omp do schedule(runtime) private(cell1, cell2, invdcEdge, k)
-         do iEdge=1,nEdges
-            cell1 = cellsOnEdge(1,iEdge)
-            cell2 = cellsOnEdge(2,iEdge)
-            invdcEdge = 1.0_RKIND / dcEdge(iEdge)
-
-            do k=1,maxLevelEdgeTop(iEdge)
-               tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
-                  - ( montgomeryPotential(k,cell2) - montgomeryPotential(k,cell1) ) &
-                  +  0.5_RKIND*(pressure(k,cell1)+pressure(k,cell2)) * ( 1.0_RKIND/potentialDensity(k,cell2) &
-                  - 1.0_RKIND/potentialDensity(k,cell1) ) )
-            end do
-         end do
-         !$omp end do
+         call pressure_grad_tend_montgomery_potenial_and_density(meshPool, statePool, &
+                                                                 diagnosticsPool,     &
+                                                                 tend)
 
       elseif (config_pressure_gradient_type.eq.'Jacobian_from_density') then
 
-         allocate(JacobianDxDs(nVertLevels))
-
-         !$omp do schedule(runtime)
-         do iEdge=1,nEdges
-            cell1 = cellsOnEdge(1,iEdge)
-            cell2 = cellsOnEdge(2,iEdge)
-            invdcEdge = 1.0_RKIND / dcEdge(iEdge)
-
-            call pGrad_Jacobian_common_level(density(:,cell1),density(:,cell2),zMid(:,cell1),zMid(:,cell2), &
-               maxLevelEdgeTop(iEdge), config_common_level_weight, JacobianDxDs)
-
-            ! In layer 1, use pressure for generalized coordinates
-            ! pGrad = -1/density_0 (grad p_k + density g grad z_k^{mid})
-            k = 1
-            pGrad = edgeMask(k,iEdge) * invdcEdge * ( &
-                 - density0Inv * ( pressure(k,cell2) - pressure(k,cell1) ) &
-                 - gdensity0Inv * 0.5_RKIND*(density(k,cell1)+density(k,cell2)) * ( zMid(k,cell2) - zMid(k,cell1) ) )
-
-            tend(k,iEdge) = tend(k,iEdge) + pGrad
-
-            do k=2,maxLevelEdgeTop(iEdge)
-
-               ! note JacobianDxDs includes negative sign, so
-               ! pGrad is - g/rho_0 dP/dx
-
-               pGrad = pGrad + gdensity0Inv * JacobianDxDs(k) * invdcEdge
-
-               tend(k,iEdge) = tend(k,iEdge) + pGrad
-
-            end do
-         end do
-         !$omp end do
-
-         deallocate(JacobianDxDs)
+         call pressure_grad_tend_jacobian_from_density(meshPool, statePool, diagnosticsPool, &
+                                                       tend)
 
      elseif (config_pressure_gradient_type.eq.'Jacobian_from_TS') then
 
-         allocate(JacobianDxDs(nVertLevels),JacobianTz(nVertLevels),JacobianSz(nVertLevels), T1(nVertLevels))
-         allocate(T2(nVertLevels), S1(nVertLevels), S2(nVertLevels))
-
-         !$omp do schedule(runtime)
-         do iEdge=1,nEdges
-            cell1 = cellsOnEdge(1,iEdge)
-            cell2 = cellsOnEdge(2,iEdge)
-            invdcEdge = 1.0_RKIND / dcEdge(iEdge)
-            kMax = maxLevelEdgeTop(iEdge)
-
-            ! copy T and S to local column arrays
-            T1(1:kMax) = tracers(indexT,1:kMax,cell1)
-            T2(1:kMax) = tracers(indexT,1:kMax,cell2)
-            S1(1:kMax) = tracers(indexS,1:kMax,cell1)
-            S2(1:kMax) = tracers(indexS,1:kMax,cell2)
-
-            ! compute J(T,z) and J(S,z) in Shchepetkin and McWilliams (2003) (7.16)
-            call pGrad_Jacobian_common_level(T1, T2 ,zMid(:,cell1),zMid(:,cell2),kMax,config_common_level_weight, JacobianTz)
-            call pGrad_Jacobian_common_level(S1, S2 ,zMid(:,cell1),zMid(:,cell2),kMax,config_common_level_weight, JacobianSz)
-
-            ! In layer 1, use pressure for generalized coordinates
-            ! pGrad = -1/density_0 (grad p_k + density g grad z_k^{mid})
-            k = 1
-            pGrad = edgeMask(k,iEdge) * invdcEdge * ( &
-                 - density0Inv * ( pressure(k,cell2) - pressure(k,cell1) ) &
-                 - gdensity0Inv * 0.5_RKIND*(density(k,cell1)+density(k,cell2)) * ( zMid(k,cell2) - zMid(k,cell1) ) )
-
-            tend(k,iEdge) = tend(k,iEdge) + pGrad
-
-            do k=2,kMax
-
-               ! Average alpha and beta over four data points of the Jacobian cell.
-               ! Note that inSituThermalExpansionCoeff and inSituSalineContractionCoeff include a 1/density factor,
-               ! so must multiply by density here.
-               alpha = 0.25_RKIND*(  density(k,cell1)*inSituThermalExpansionCoeff (k,cell1) &
-                                   + density(k-1,cell1)*inSituThermalExpansionCoeff (k-1,cell1) &
-                                   + density(k,cell2)*inSituThermalExpansionCoeff (k,cell2) &
-                                   + density(k-1,cell2)*inSituThermalExpansionCoeff (k-1,cell2) )
-               beta  = 0.25_RKIND*(  density(k,cell1)*inSituSalineContractionCoeff(k,cell1) &
-                                   + density(k-1,cell1)*inSituSalineContractionCoeff(k-1,cell1) &
-                                   + density(k,cell2)*inSituSalineContractionCoeff(k,cell2) &
-                                   + density(k-1,cell2)*inSituSalineContractionCoeff(k-1,cell2) )
-
-               ! Shchepetkin and McWilliams (2003) (7.16)
-               JacobianDxDs(k) = -alpha*JacobianTz(k) + beta*JacobianSz(k)
-
-               ! note JacobianDxDs includes negative sign, so
-               ! pGrad is - g/rho_0 dP/dx
-
-               pGrad = pGrad + gdensity0Inv * JacobianDxDs(k) * invdcEdge
-
-               tend(k,iEdge) = tend(k,iEdge) + pGrad
-
-            end do
-         end do
-         !$omp end do
-
-         deallocate(JacobianDxDs,JacobianTz,JacobianSz, T1, T2, S1, S2)
+         call pressure_grad_tend_jacobian_from_ts(meshPool, statePool, diagnosticsPool, &
+                                                  timeLevelIn, tend)
 
       else
 
@@ -325,6 +160,527 @@ contains
    !--------------------------------------------------------------------
 
    end subroutine ocn_vel_pressure_grad_tend!}}}
+
+!***********************************************************************
+!
+!  routine pressure_grad_tend_pressure_and_zmid
+!
+!> \brief   Computes tendency term for horizontal pressure gradient
+!> \author  Mark Petersen, Xylar Asay-Davis
+!> \date    July 2019
+!> \details
+!>  This routine computes the pressure gradient tendency for momentum
+!>  based on current state using pressure and zMid diagnostic variables:
+!>    -1/density_0 (grad p_k + density g grad z_k^{mid})
+!
+!-----------------------------------------------------------------------
+
+   subroutine pressure_grad_tend_pressure_and_zmid(meshPool, statePool, diagnosticsPool, &
+                                                   tend)!{{{
+
+      !-----------------------------------------------------------------
+      !
+      ! input variables
+      !
+      !-----------------------------------------------------------------
+
+      type (mpas_pool_type), intent(in) :: meshPool !< Input: Mesh information
+      type (mpas_pool_type), intent(in) :: statePool !< Input: State information
+      type (mpas_pool_type), intent(in) :: diagnosticsPool !< Input: Diagnostic information
+
+      !-----------------------------------------------------------------
+      !
+      ! input/output variables
+      !
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), intent(inout) :: &
+         tend          !< Input/Output: velocity tendency
+
+      !-----------------------------------------------------------------
+      !
+      ! local variables
+      !
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), pointer :: &
+        density, zMid, pressure
+
+      integer :: iEdge, k, cell1, cell2, nEdges
+      integer, dimension(:), pointer :: nEdgesArray
+      integer, dimension(:), pointer :: maxLevelEdgeTop
+      integer, dimension(:,:), pointer :: cellsOnEdge, edgeMask
+
+      real (kind=RKIND), dimension(:), pointer :: dcEdge
+      real (kind=RKIND) :: invdcEdge
+
+      call mpas_pool_get_dimension(meshPool, 'nEdgesArray', nEdgesArray)
+      call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+      call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
+      call mpas_pool_get_array(meshPool, 'dcEdge', dcEdge)
+      call mpas_pool_get_array(meshPool, 'edgeMask', edgeMask)
+
+      call mpas_pool_get_array(diagnosticsPool, 'zMid', zMid)
+      call mpas_pool_get_array(diagnosticsPool, 'pressure', pressure)
+      call mpas_pool_get_array(diagnosticsPool, 'density', density)
+
+      nEdges = nEdgesArray( 1 )
+
+      ! pressure for generalized coordinates
+      ! -1/density_0 (grad p_k + density g grad z_k^{mid})
+
+      !$omp do schedule(runtime) private(cell1, cell2, invdcEdge, k)
+      do iEdge=1,nEdges
+         cell1 = cellsOnEdge(1,iEdge)
+         cell2 = cellsOnEdge(2,iEdge)
+         invdcEdge = 1.0_RKIND / dcEdge(iEdge)
+
+         do k=1,maxLevelEdgeTop(iEdge)
+            tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
+              - density0Inv * ( pressure(k,cell2) - pressure(k,cell1) ) &
+              - gdensity0Inv * 0.5_RKIND*(density(k,cell1)+density(k,cell2)) * ( zMid(k,cell2) - zMid(k,cell1) ) )
+         end do
+      end do
+      !$omp end do
+
+   !--------------------------------------------------------------------
+
+   end subroutine pressure_grad_tend_pressure_and_zmid!}}}
+
+!***********************************************************************
+!
+!  routine pressure_grad_tend_montgomery_potenial
+!
+!> \brief   Computes tendency term for horizontal pressure gradient
+!> \author  Mark Petersen, Xylar Asay-Davis
+!> \date    July 2019
+!> \details
+!>  This routine computes the pressure gradient tendency for momentum
+!>  for pure isopycnal coordinates, this is just grad(M),
+!>  the gradient of Montgomery Potential
+!
+!-----------------------------------------------------------------------
+
+   subroutine pressure_grad_tend_montgomery_potenial(meshPool, statePool, diagnosticsPool, &
+                                                     tend)!{{{
+
+      !-----------------------------------------------------------------
+      !
+      ! input variables
+      !
+      !-----------------------------------------------------------------
+
+      type (mpas_pool_type), intent(in) :: meshPool !< Input: Mesh information
+      type (mpas_pool_type), intent(in) :: statePool !< Input: State information
+      type (mpas_pool_type), intent(in) :: diagnosticsPool !< Input: Diagnostic information
+
+      !-----------------------------------------------------------------
+      !
+      ! input/output variables
+      !
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), intent(inout) :: &
+         tend          !< Input/Output: velocity tendency
+
+      !-----------------------------------------------------------------
+      !
+      ! local variables
+      !
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), pointer :: &
+        montgomeryPotential
+
+      integer :: iEdge, k, cell1, cell2, nEdges
+      integer, dimension(:), pointer :: nEdgesArray
+      integer, dimension(:), pointer :: maxLevelEdgeTop
+      integer, dimension(:,:), pointer :: cellsOnEdge, edgeMask
+
+      real (kind=RKIND), dimension(:), pointer :: dcEdge
+      real (kind=RKIND) :: invdcEdge
+
+      call mpas_pool_get_dimension(meshPool, 'nEdgesArray', nEdgesArray)
+      call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+      call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
+      call mpas_pool_get_array(meshPool, 'dcEdge', dcEdge)
+      call mpas_pool_get_array(meshPool, 'edgeMask', edgeMask)
+
+      call mpas_pool_get_array(diagnosticsPool, 'montgomeryPotential', montgomeryPotential)
+
+      nEdges = nEdgesArray( 1 )
+
+      ! For pure isopycnal coordinates, this is just grad(M),
+      ! the gradient of Montgomery Potential
+
+      !$omp do schedule(runtime) private(cell1, cell2, invdcEdge, k)
+      do iEdge=1,nEdges
+         cell1 = cellsOnEdge(1,iEdge)
+         cell2 = cellsOnEdge(2,iEdge)
+         invdcEdge = 1.0_RKIND / dcEdge(iEdge)
+
+         do k=1,maxLevelEdgeTop(iEdge)
+            tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
+               - ( montgomeryPotential(k,cell2) - montgomeryPotential(k,cell1) ) )
+         end do
+      end do
+      !$omp end do
+
+   !--------------------------------------------------------------------
+
+   end subroutine pressure_grad_tend_montgomery_potenial!}}}
+
+!***********************************************************************
+!
+!  routine pressure_grad_tend_montgomery_potenial_and_density
+!
+!> \brief   Computes tendency term for horizontal pressure gradient
+!> \author  Mark Petersen, Xylar Asay-Davis
+!> \date    July 2019
+!> \details
+!>  This routine computes the pressure gradient tendency for momentum.
+!>  This formulation has not been extensively tested and is not supported at
+!>  this time.  This is:
+!>     -grad(M)+p grad(1/rho)
+!>  where rho is the potential density. See Bleck (2002) equation 1, and last
+!>  equation in Appendix A.
+!
+!-----------------------------------------------------------------------
+
+   subroutine pressure_grad_tend_montgomery_potenial_and_density(meshPool, statePool, &
+                                                                 diagnosticsPool,     &
+                                                                 tend)!{{{
+
+      !-----------------------------------------------------------------
+      !
+      ! input variables
+      !
+      !-----------------------------------------------------------------
+
+      type (mpas_pool_type), intent(in) :: meshPool !< Input: Mesh information
+      type (mpas_pool_type), intent(in) :: statePool !< Input: State information
+      type (mpas_pool_type), intent(in) :: diagnosticsPool !< Input: Diagnostic information
+
+      !-----------------------------------------------------------------
+      !
+      ! input/output variables
+      !
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), intent(inout) :: &
+         tend          !< Input/Output: velocity tendency
+
+      !-----------------------------------------------------------------
+      !
+      ! local variables
+      !
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), pointer :: &
+        potentialDensity, montgomeryPotential, pressure
+
+      integer :: iEdge, k, cell1, cell2, nEdges
+      integer, dimension(:), pointer :: nEdgesArray
+      integer, dimension(:), pointer :: maxLevelEdgeTop
+      integer, dimension(:,:), pointer :: cellsOnEdge, edgeMask
+
+      real (kind=RKIND), dimension(:), pointer :: dcEdge
+      real (kind=RKIND) :: invdcEdge
+
+      call mpas_pool_get_dimension(meshPool, 'nEdgesArray', nEdgesArray)
+      call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+      call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
+      call mpas_pool_get_array(meshPool, 'dcEdge', dcEdge)
+      call mpas_pool_get_array(meshPool, 'edgeMask', edgeMask)
+
+      call mpas_pool_get_array(diagnosticsPool, 'montgomeryPotential', montgomeryPotential)
+      call mpas_pool_get_array(diagnosticsPool, 'pressure', pressure)
+      call mpas_pool_get_array(diagnosticsPool, 'potentialDensity', potentialDensity)
+
+      nEdges = nEdgesArray( 1 )
+
+      ! This formulation has not been extensively tested and is not supported at this time.
+
+      ! This is -grad(M)+p grad(1/rho)
+      ! Where rho is the potential density.
+      ! See Bleck (2002) equation 1, and last equation in Appendix A.
+
+      !$omp do schedule(runtime) private(cell1, cell2, invdcEdge, k)
+      do iEdge=1,nEdges
+         cell1 = cellsOnEdge(1,iEdge)
+         cell2 = cellsOnEdge(2,iEdge)
+         invdcEdge = 1.0_RKIND / dcEdge(iEdge)
+
+         do k=1,maxLevelEdgeTop(iEdge)
+            tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
+               - ( montgomeryPotential(k,cell2) - montgomeryPotential(k,cell1) ) &
+               +  0.5_RKIND*(pressure(k,cell1)+pressure(k,cell2)) * ( 1.0_RKIND/potentialDensity(k,cell2) &
+               - 1.0_RKIND/potentialDensity(k,cell1) ) )
+         end do
+      end do
+      !$omp end do
+
+   !--------------------------------------------------------------------
+
+   end subroutine pressure_grad_tend_montgomery_potenial_and_density!}}}
+
+
+!***********************************************************************
+!
+!  routine pressure_grad_tend_jacobian_from_density
+!
+!> \brief   Computes tendency term for horizontal pressure gradient
+!> \author  Mark Petersen, Xylar Asay-Davis
+!> \date    July 2019
+!> \details
+!>  This routine computes the pressure gradient tendency for momentum
+!>  based on the density/zMid Jacobian
+!-----------------------------------------------------------------------
+
+   subroutine pressure_grad_tend_jacobian_from_density(meshPool, statePool, diagnosticsPool, &
+                                                       tend)!{{{
+
+      !-----------------------------------------------------------------
+      !
+      ! input variables
+      !
+      !-----------------------------------------------------------------
+
+      type (mpas_pool_type), intent(in) :: meshPool !< Input: Mesh information
+      type (mpas_pool_type), intent(in) :: statePool !< Input: State information
+      type (mpas_pool_type), intent(in) :: diagnosticsPool !< Input: Diagnostic information
+
+      !-----------------------------------------------------------------
+      !
+      ! input/output variables
+      !
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), intent(inout) :: &
+         tend          !< Input/Output: velocity tendency
+
+      !-----------------------------------------------------------------
+      !
+      ! local variables
+      !
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), pointer :: &
+        density, zMid, pressure
+
+      integer :: iEdge, k, cell1, cell2, nEdges
+      integer, pointer :: nVertLevels
+      integer, dimension(:), pointer :: nEdgesArray
+      integer, dimension(:), pointer :: maxLevelEdgeTop
+      integer, dimension(:,:), pointer :: cellsOnEdge, edgeMask
+
+      real (kind=RKIND), dimension(:), allocatable :: JacobianDxDs
+      real (kind=RKIND), dimension(:), pointer :: dcEdge
+      real (kind=RKIND) :: invdcEdge, pGrad
+
+      call mpas_pool_get_dimension(meshPool, 'nVertLevels',nVertLevels)
+      call mpas_pool_get_dimension(meshPool, 'nEdgesArray', nEdgesArray)
+      call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+      call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
+      call mpas_pool_get_array(meshPool, 'dcEdge', dcEdge)
+      call mpas_pool_get_array(meshPool, 'edgeMask', edgeMask)
+
+      call mpas_pool_get_array(diagnosticsPool, 'zMid', zMid)
+      call mpas_pool_get_array(diagnosticsPool, 'pressure', pressure)
+      call mpas_pool_get_array(diagnosticsPool, 'density', density)
+
+      nEdges = nEdgesArray( 1 )
+
+      allocate(JacobianDxDs(nVertLevels))
+
+      !$omp do schedule(runtime)
+      do iEdge=1,nEdges
+         cell1 = cellsOnEdge(1,iEdge)
+         cell2 = cellsOnEdge(2,iEdge)
+         invdcEdge = 1.0_RKIND / dcEdge(iEdge)
+
+         call pGrad_Jacobian_common_level(density(:,cell1),density(:,cell2),zMid(:,cell1),zMid(:,cell2), &
+            maxLevelEdgeTop(iEdge), config_common_level_weight, JacobianDxDs)
+
+         ! In layer 1, use pressure for generalized coordinates
+         ! pGrad = -1/density_0 (grad p_k + density g grad z_k^{mid})
+         k = 1
+         pGrad = edgeMask(k,iEdge) * invdcEdge * ( &
+              - density0Inv * ( pressure(k,cell2) - pressure(k,cell1) ) &
+              - gdensity0Inv * 0.5_RKIND*(density(k,cell1)+density(k,cell2)) * ( zMid(k,cell2) - zMid(k,cell1) ) )
+
+         tend(k,iEdge) = tend(k,iEdge) + pGrad
+
+         do k=2,maxLevelEdgeTop(iEdge)
+
+            ! note JacobianDxDs includes negative sign, so
+            ! pGrad is - g/rho_0 dP/dx
+
+            pGrad = pGrad + gdensity0Inv * JacobianDxDs(k) * invdcEdge
+
+            tend(k,iEdge) = tend(k,iEdge) + pGrad
+
+         end do
+      end do
+      !$omp end do
+
+      deallocate(JacobianDxDs)
+
+   !--------------------------------------------------------------------
+
+   end subroutine pressure_grad_tend_jacobian_from_density!}}}
+
+!***********************************************************************
+!
+!  routine pressure_grad_tend_jacobian_from_ts
+!
+!> \brief   Computes tendency term for horizontal pressure gradient
+!> \author  Mark Petersen, Xylar Asay-Davis
+!> \date    July 2019
+!> \details
+!>  This routine computes the pressure gradient tendency for momentum
+!>  based on the T/zMid and S/zMid Jacobians
+!-----------------------------------------------------------------------
+
+   subroutine pressure_grad_tend_jacobian_from_ts(meshPool, statePool, diagnosticsPool, &
+                                                  timeLevelIn, tend)!{{{
+
+      !-----------------------------------------------------------------
+      !
+      ! input variables
+      !
+      !-----------------------------------------------------------------
+
+      type (mpas_pool_type), intent(in) :: meshPool !< Input: Mesh information
+      type (mpas_pool_type), intent(in) :: statePool !< Input: State information
+      type (mpas_pool_type), intent(in) :: diagnosticsPool !< Input: Diagnostic information
+
+      integer, intent(in), optional :: timeLevelIn !< Input: Time level for state fields
+
+      !-----------------------------------------------------------------
+      !
+      ! input/output variables
+      !
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), intent(inout) :: &
+         tend          !< Input/Output: velocity tendency
+
+      !-----------------------------------------------------------------
+      !
+      ! local variables
+      !
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), pointer :: &
+        density, zMid, pressure,                    &
+        inSituThermalExpansionCoeff,                &
+        inSituSalineContractionCoeff
+
+      type (mpas_pool_type), pointer :: tracersPool
+
+      real (kind=RKIND), dimension(:,:,:), pointer :: tracers
+      integer, pointer :: indexT, indexS
+
+      integer :: iEdge, k, cell1, cell2, kMax, nEdges
+      integer, pointer :: nVertLevels
+      integer, dimension(:), pointer :: nEdgesArray
+      integer, dimension(:), pointer :: maxLevelEdgeTop, maxLevelCell
+      integer, dimension(:,:), pointer :: cellsOnEdge, edgeMask
+
+      real (kind=RKIND), dimension(:), pointer :: dcEdge
+      real (kind=RKIND), dimension(:), allocatable :: JacobianDxDs, JacobianTz, &
+                                                      JacobianSz, T1, T2, S1, S2
+      real (kind=RKIND) :: invdcEdge, pGrad, alpha, beta
+
+      call mpas_pool_get_dimension(meshPool, 'nVertLevels',nVertLevels)
+      call mpas_pool_get_dimension(meshPool, 'nEdgesArray', nEdgesArray)
+      call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+      call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
+      call mpas_pool_get_array(meshPool, 'dcEdge', dcEdge)
+      call mpas_pool_get_array(meshPool, 'edgeMask', edgeMask)
+
+      call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
+
+      call mpas_pool_get_array(tracersPool, 'activeTracers', tracers, timeLevelIn)
+      call mpas_pool_get_dimension(tracersPool, 'index_temperature', indexT)
+      call mpas_pool_get_dimension(tracersPool, 'index_salinity', indexS)
+
+      call mpas_pool_get_array(diagnosticsPool, 'zMid', zMid)
+      call mpas_pool_get_array(diagnosticsPool, 'pressure', pressure)
+      call mpas_pool_get_array(diagnosticsPool, 'density', density)
+      call mpas_pool_get_array(diagnosticsPool, 'inSituThermalExpansionCoeff', &
+                                                 inSituThermalExpansionCoeff)
+      call mpas_pool_get_array(diagnosticsPool, 'inSituSalineContractionCoeff', &
+                                                 inSituSalineContractionCoeff)
+
+      nEdges = nEdgesArray( 1 )
+
+      allocate(JacobianDxDs(nVertLevels), JacobianTz(nVertLevels), &
+                            JacobianSz(nVertLevels), T1(nVertLevels))
+      allocate(T2(nVertLevels), S1(nVertLevels), S2(nVertLevels))
+
+      !$omp do schedule(runtime)
+      do iEdge=1,nEdges
+         cell1 = cellsOnEdge(1,iEdge)
+         cell2 = cellsOnEdge(2,iEdge)
+         invdcEdge = 1.0_RKIND / dcEdge(iEdge)
+         kMax = maxLevelEdgeTop(iEdge)
+
+         ! copy T and S to local column arrays
+         T1(1:kMax) = tracers(indexT,1:kMax,cell1)
+         T2(1:kMax) = tracers(indexT,1:kMax,cell2)
+         S1(1:kMax) = tracers(indexS,1:kMax,cell1)
+         S2(1:kMax) = tracers(indexS,1:kMax,cell2)
+
+         ! compute J(T,z) and J(S,z) in Shchepetkin and McWilliams (2003) (7.16)
+         call pGrad_Jacobian_common_level(T1, T2 ,zMid(:,cell1), zMid(:,cell2), kMax, &
+                                          config_common_level_weight, JacobianTz)
+         call pGrad_Jacobian_common_level(S1, S2 ,zMid(:,cell1), zMid(:,cell2), kMax, &
+                                          config_common_level_weight, JacobianSz)
+
+         ! In layer 1, use pressure for generalized coordinates
+         ! pGrad = -1/density_0 (grad p_k + density g grad z_k^{mid})
+         k = 1
+         pGrad = edgeMask(k,iEdge) * invdcEdge * ( &
+              - density0Inv * ( pressure(k,cell2) - pressure(k,cell1) ) &
+              - gdensity0Inv * 0.5_RKIND*(density(k,cell1)+density(k,cell2)) * ( zMid(k,cell2) - zMid(k,cell1) ) )
+
+         tend(k,iEdge) = tend(k,iEdge) + pGrad
+
+         do k=2,kMax
+
+            ! Average alpha and beta over four data points of the Jacobian cell.
+            ! Note that inSituThermalExpansionCoeff and inSituSalineContractionCoeff include a 1/density factor,
+            ! so must multiply by density here.
+            alpha = 0.25_RKIND*(  density(k,cell1)*inSituThermalExpansionCoeff (k,cell1) &
+                                + density(k-1,cell1)*inSituThermalExpansionCoeff (k-1,cell1) &
+                                + density(k,cell2)*inSituThermalExpansionCoeff (k,cell2) &
+                                + density(k-1,cell2)*inSituThermalExpansionCoeff (k-1,cell2) )
+            beta  = 0.25_RKIND*(  density(k,cell1)*inSituSalineContractionCoeff(k,cell1) &
+                                + density(k-1,cell1)*inSituSalineContractionCoeff(k-1,cell1) &
+                                + density(k,cell2)*inSituSalineContractionCoeff(k,cell2) &
+                                + density(k-1,cell2)*inSituSalineContractionCoeff(k-1,cell2) )
+
+            ! Shchepetkin and McWilliams (2003) (7.16)
+            JacobianDxDs(k) = -alpha*JacobianTz(k) + beta*JacobianSz(k)
+
+            ! note JacobianDxDs includes negative sign, so
+            ! pGrad is - g/rho_0 dP/dx
+
+            pGrad = pGrad + gdensity0Inv * JacobianDxDs(k) * invdcEdge
+
+            tend(k,iEdge) = tend(k,iEdge) + pGrad
+
+         end do
+      end do
+      !$omp end do
+
+      deallocate(JacobianDxDs, JacobianTz, JacobianSz, T1, T2, S1, S2)
+
+   !--------------------------------------------------------------------
+
+   end subroutine pressure_grad_tend_jacobian_from_ts!}}}
 
 !***********************************************************************
 !

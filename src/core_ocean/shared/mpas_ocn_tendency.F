@@ -188,7 +188,7 @@ contains
       call ocn_frazil_forcing_layer_thickness(meshPool, forcingPool, tend_layerThickness, err)
 
       !
-      ! tidal boundary condition flux 
+      ! tidal boundary condition flux
       !
       call ocn_tidal_forcing_layer_thickness(meshPool, forcingPool, tend_layerThickness, err)
 
@@ -220,28 +220,23 @@ contains
       type (mpas_pool_type), intent(inout) :: scratchPool !< Input: Scratch structure
       integer, intent(in), optional :: timeLevelIn !< Input: Time level for state fields
 
-      type (mpas_pool_type), pointer :: tracersPool
-
       real (kind=RKIND), dimension(:), pointer :: surfaceStress, surfaceStressMagnitude, surfaceFluxAttenuationCoefficient
       real (kind=RKIND), dimension(:,:), pointer :: &
-        layerThicknessEdge, normalVelocity, tangentialVelocity, density, potentialDensity, zMid, pressure, &
+        layerThicknessEdge, normalVelocity, tangentialVelocity, &
         layerThickness, &
         tend_normalVelocity, circulation, relativeVorticity, viscosity, kineticEnergyCell, &
         normalizedRelativeVorticityEdge, normalizedPlanetaryVorticityEdge, &
-        montgomeryPotential, vertAleTransportTop, divergence, vertViscTopOfEdge, &
-        inSituThermalExpansionCoeff, inSituSalineContractionCoeff
+        vertAleTransportTop, divergence, vertViscTopOfEdge
       real (kind=RKIND), dimension(:,:), pointer :: wettingVelocity
-      real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
 
       integer :: timeLevel
 
       integer :: err, iEdge, iCell
-      integer, pointer :: indexTemperature, indexSalinity, nEdges, nCells
+      integer, pointer :: nEdges, nCells
 
       logical, pointer :: config_disable_vel_all_tend
       logical, pointer :: config_use_wetting_drying
       logical, pointer :: config_prevent_drying
-      character (len=StrKIND), pointer :: config_pressure_gradient_type
 
       if (present(timeLevelIn)) then
          timeLevel = timeLevelIn
@@ -250,35 +245,24 @@ contains
       end if
 
       call mpas_pool_get_config(ocnConfigs, 'config_disable_vel_all_tend', config_disable_vel_all_tend)
-      call mpas_pool_get_config(ocnConfigs, 'config_pressure_gradient_type', config_pressure_gradient_type)
       call mpas_pool_get_config(ocnConfigs, 'config_use_wetting_drying', config_use_wetting_drying)
       call mpas_pool_get_config(ocnConfigs, 'config_prevent_drying', config_prevent_drying)
 
       call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
       call mpas_pool_get_dimension(meshPool, 'nCells', nCells)
 
-      call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
-
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
       call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
-      call mpas_pool_get_array(tracersPool, 'activeTracers', activeTracers, timeLevel)
-      call mpas_pool_get_dimension(tracersPool, 'index_temperature', indexTemperature)
-      call mpas_pool_get_dimension(tracersPool, 'index_salinity', indexSalinity)
 
       call mpas_pool_get_array(diagnosticsPool, 'kineticEnergyCell', kineticEnergyCell)
       call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
       call mpas_pool_get_array(diagnosticsPool, 'vertAleTransportTop', vertAleTransportTop)
-      call mpas_pool_get_array(diagnosticsPool, 'zMid', zMid)
       call mpas_pool_get_array(diagnosticsPool, 'relativeVorticity', relativeVorticity)
       call mpas_pool_get_array(diagnosticsPool, 'normalizedRelativeVorticityEdge', normalizedRelativeVorticityEdge)
       call mpas_pool_get_array(diagnosticsPool, 'normalizedPlanetaryVorticityEdge', normalizedPlanetaryVorticityEdge)
       call mpas_pool_get_array(diagnosticsPool, 'divergence', divergence)
       call mpas_pool_get_array(diagnosticsPool, 'viscosity', viscosity)
-      call mpas_pool_get_array(diagnosticsPool, 'montgomeryPotential', montgomeryPotential)
-      call mpas_pool_get_array(diagnosticsPool, 'pressure', pressure)
       call mpas_pool_get_array(diagnosticsPool, 'vertViscTopOfEdge', vertViscTopOfEdge)
-      call mpas_pool_get_array(diagnosticsPool, 'density', density)
-      call mpas_pool_get_array(diagnosticsPool, 'potentialDensity', potentialDensity)
       call mpas_pool_get_array(diagnosticsPool, 'tangentialVelocity', tangentialVelocity)
       call mpas_pool_get_array(diagnosticsPool, 'surfaceFluxAttenuationCoefficient', surfaceFluxAttenuationCoefficient)
 
@@ -328,18 +312,8 @@ contains
       !
       ! velocity tendency: pressure gradient
       !
-      if (config_pressure_gradient_type.eq.'Jacobian_from_TS') then
-         ! only pass EOS derivatives if needed.
-         call mpas_pool_get_array(diagnosticsPool, 'inSituThermalExpansionCoeff',inSituThermalExpansionCoeff)
-         call mpas_pool_get_array(diagnosticsPool, 'inSituSalineContractionCoeff', inSituSalineContractionCoeff)
-         call ocn_vel_pressure_grad_tend(meshPool, pressure, montgomeryPotential, zMid, density, potentialDensity, &
-              indexTemperature, indexSalinity, activeTracers, tend_normalVelocity, err, &
-              inSituThermalExpansionCoeff,inSituSalineContractionCoeff)
-      else
-         call ocn_vel_pressure_grad_tend(meshPool, pressure, montgomeryPotential, zMid, density, potentialDensity, &
-              indexTemperature, indexSalinity, activeTracers, tend_normalVelocity, err, &
-              inSituThermalExpansionCoeff,inSituSalineContractionCoeff)
-      endif
+      call ocn_vel_pressure_grad_tend(meshPool, statePool, diagnosticsPool, &
+                                      timeLevel, tend_normalVelocity, err)
 
       !
       ! velocity tendency: del2 dissipation, \nu_2 \nabla^2 u
