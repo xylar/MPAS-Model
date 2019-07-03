@@ -15,7 +15,7 @@
 	<namelist name="namelist.ocean" mode="forward">
 		<template file="template_forward.xml" path_base="script_configuration_dir"/>
 		<template file="global_stats.xml" path_base="script_core_dir" path="templates/analysis_members"/>
-		<option name="config_pressure_gradient_type">'Jacobian_from_TS'</option>
+		<option name="config_pressure_gradient_type">'semianalytic'</option>
 		<option name="config_eos_type">'wright'</option>
 	</namelist>
 

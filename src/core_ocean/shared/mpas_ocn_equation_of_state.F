@@ -47,6 +47,7 @@ module ocn_equation_of_state
    !--------------------------------------------------------------------
 
    public :: ocn_equation_of_state_density, &
+             ocn_equation_of_state_pressure_grad_semianalytic, &
              ocn_equation_of_state_init, &
              ocn_freezing_temperature, &
              ocn_freezing_temperature_salinity_deriv
@@ -71,7 +72,7 @@ contains
 
 !***********************************************************************
 !
-!  routine ocn_equation_of_state
+!  routine ocn_equation_of_state_density
 !
 !> \brief   Computes density using an ocean equation of state
 !> \author  Mark Petersen, modified by Phil Jones
@@ -238,6 +239,79 @@ contains
       !-----------------------------------------------------------------
 
    end subroutine ocn_equation_of_state_density!}}}
+
+!***********************************************************************
+!
+!  routine ocn_equation_of_state_pressure_grad_semianalytic
+!
+!> \brief   Computes the semi-analytic horizontal pressure-gradient force
+!> \author  Xylar Asay-Davis
+!> \date    July 2019
+!> \details
+!>  Performs the contour integral around a control volume surrounding an edge
+!>  to get the horizontal pressure-gradient force (HPGF).  The integral is
+!>  performed assuming vertically constant T and S in each layer but taking
+!>  into account that density (and therefore pressure) varies with depth within
+!>  a layer, in a Boussinesq adaptation of Adcroft et al. (2008, doi:
+!>  10.1016/j.ocemod.2008.02.001)
+!
+!-----------------------------------------------------------------------
+
+   subroutine ocn_equation_of_state_pressure_grad_semianalytic(meshPool, statePool, &
+                                                               diagnosticsPool,     &
+                                                               timeLevelIn,         &
+                                                               tend_normalVelocity, &
+                                                               err)!{{{
+      !-----------------------------------------------------------------
+      ! input variables
+      !-----------------------------------------------------------------
+
+      type (mpas_pool_type), intent(in) :: meshPool !< Input: Mesh information
+      type (mpas_pool_type), intent(in) :: statePool !< Input: State information
+      type (mpas_pool_type), intent(in) :: diagnosticsPool !< Input: Diagnostic information
+
+      integer, intent(in), optional :: timeLevelIn !< Input: Time level for state fields
+
+      !-----------------------------------------------------------------
+      ! input/output variables
+      !-----------------------------------------------------------------
+
+      real (kind=RKIND), dimension(:,:), intent(inout) :: &
+         tend_normalVelocity          !< Input/Output: velocity tendency
+
+      !-----------------------------------------------------------------
+      ! Output variables
+      !-----------------------------------------------------------------
+
+      integer, intent(out) :: &
+         err                   ! returned error flag
+
+      !-----------------------------------------------------------------
+
+      err = 0
+
+      !*** call specific semi-analytic HPGF based on user choice of EOS
+
+      select case (ocnEqStateChoice)
+
+      case (ocnEqStateTypeWright)
+
+         call ocn_equation_of_state_pressure_grad_wright(meshPool, statePool, &
+                                                         diagnosticsPool,     &
+                                                         timeLevelIn,         &
+                                                         tend_normalVelocity, &
+                                                         err)
+
+      case default
+         call mpas_log_write(&
+            'Currently, only the Wright EOS supports the semianalytic pressure grad.')
+         err = 1
+
+      end select
+
+      !-----------------------------------------------------------------
+
+   end subroutine ocn_equation_of_state_pressure_grad_semianalytic!}}}
 
 !***********************************************************************
 !

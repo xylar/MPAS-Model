@@ -90,9 +90,9 @@ mpas_ocn_thick_vadv.o: mpas_ocn_constants.o
 
 mpas_ocn_thick_surface_flux.o: mpas_ocn_forcing.o mpas_ocn_constants.o
 
-mpas_ocn_gm.o:  mpas_ocn_constants.o
+mpas_ocn_gm.o: mpas_ocn_constants.o
 
-mpas_ocn_vel_pressure_grad.o: mpas_ocn_constants.o
+mpas_ocn_vel_pressure_grad.o: mpas_ocn_constants.o mpas_ocn_equation_of_state.o
 
 mpas_ocn_vel_vadv.o: mpas_ocn_constants.o
 
@@ -202,7 +202,7 @@ mpas_ocn_time_average_coupled.o: mpas_ocn_constants.o
 
 mpas_ocn_framework_forcing.o:
 
-mpas_ocn_time_varying_forcing.o:  
+mpas_ocn_time_varying_forcing.o:
 
 mpas_ocn_wetting_drying.o: mpas_ocn_diagnostics.o mpas_ocn_gm.o
 

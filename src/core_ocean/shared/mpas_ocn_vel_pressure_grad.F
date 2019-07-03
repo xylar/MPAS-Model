@@ -28,6 +28,7 @@ module ocn_vel_pressure_grad
    use mpas_log
 
    use ocn_constants
+   use ocn_equation_of_state
 
    implicit none
    private
@@ -146,6 +147,13 @@ contains
 
          call pressure_grad_tend_jacobian_from_ts(meshPool, statePool, diagnosticsPool, &
                                                   timeLevelIn, tend)
+
+     elseif (config_pressure_gradient_type.eq.'semianalytic') then
+
+         call ocn_equation_of_state_pressure_grad_semianalytic(meshPool, statePool, &
+                                                               diagnosticsPool, &
+                                                               timeLevelIn, tend, &
+                                                               err)
 
       else
 
