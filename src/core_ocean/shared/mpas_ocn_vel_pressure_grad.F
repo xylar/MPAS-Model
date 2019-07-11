@@ -656,6 +656,11 @@ contains
 
          tend(k,iEdge) = tend(k,iEdge) + pGrad
 
+if(iEdge == 2) then
+print *, "tend_normalVelocity", tend(k, iEdge)
+stop(1)
+end if
+
          do k=2,kMax
 
             ! Average alpha and beta over four data points of the Jacobian cell.

@@ -497,7 +497,7 @@ contains
 
       type (mpas_pool_type), pointer :: tracersPool
 
-      real (kind=RKIND), dimension(:), pointer :: surfacePressure, dcEdge
+      real (kind=RKIND), dimension(:), pointer :: surfacePressure, dcEdge, ssh
       real (kind=RKIND), dimension(:,:), pointer :: layerThickness
       real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
 
@@ -526,6 +526,8 @@ contains
 
       call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, &
                                timeLevelIn)
+
+      call mpas_pool_get_array(statePool, 'ssh', ssh, timeLevelIn)
 
       call mpas_pool_get_subpool  (statePool,   'tracers', &
                                                  tracersPool)
@@ -566,7 +568,7 @@ contains
 
       call compute_vert_pressure_integral(nVertLevels, nCells, &
                                           surfacePressure, layerThickness, &
-                                          tracerTemp, tracerSalt, &
+                                          ssh, tracerTemp, tracerSalt, &
                                           boussinesqPres, p0, lambda0,  &
                                           alpha0, interfacePressure, &
                                           vertPressureIntegral)
@@ -789,7 +791,7 @@ contains
 
    subroutine compute_vert_pressure_integral(nVertLevels, nCells, &
                                              surfacePressure, layerThickness, &
-                                             tracerTemp, tracerSalt, &
+                                             ssh, tracerTemp, tracerSalt, &
                                              boussinesqPres, p0, lambda0,  &
                                              alpha0, interfacePressure, &
                                              vertPressureIntegral)!{{{
@@ -800,7 +802,7 @@ contains
       integer, intent(in) :: &
          nVertLevels, nCells
 
-      real (kind=RKIND), dimension(:), intent(in) :: surfacePressure
+      real (kind=RKIND), dimension(:), intent(in) :: surfacePressure, ssh
       real (kind=RKIND), dimension(:,:), intent(in) :: &
          layerThickness, tracerTemp, tracerSalt
 
@@ -824,7 +826,7 @@ contains
 
       !$omp  do schedule(runtime)
       do iCell=1,nCells
-         boussinesqPres(1, iCell) = surfacePressure(iCell)
+         boussinesqPres(1, iCell) = -rho_sw*gravity*ssh(k, iCell)
          interfacePressure(1, iCell) = surfacePressure(iCell)
          do k=1,nVertLevels
 
@@ -916,15 +918,21 @@ contains
          epsx, eps2x, seriesx
 
       real (kind=RKIND) :: &
-         layerIntegral, layerPressureIntegralK, layerPressureIntegralKP1
+         layerIntegral, layerPressureIntegralK, layerPressureIntegralKP1, &
+         coeff
 
       integer :: &
          iEdge, k, cell1, cell2, iq
 
       !$omp  do schedule(runtime)
       do iEdge=1,nEdges
+         ! see if this is a boundary edge
+         if(edgeMask(1, iEdge) /= 1) cycle
+
          cell1 = cellsOnEdge(1,iEdge)
          cell2 = cellsOnEdge(2,iEdge)
+
+         coeff = 1.0_RKIND/(dcEdge(iEdge)*rho_sw**2*gravity)
 
          layerIntegral = 0.5_RKIND*(boussinesqPres(1, cell1) &
                                     + boussinesqPres(1, cell2))
@@ -932,8 +940,10 @@ contains
          layerPressureIntegralK = (boussinesqPres(1, cell2) &
                                    - boussinesqPres(1, cell1)) &
                                   * layerIntegral
-
          do k=1,nVertLevels
+
+            ! skip the computation if it's masked out anyway
+            if(edgeMask(k, iEdge) /= 1) cycle
 
             deltaPix(1) = boussinesqPres(k+1, cell1) &
                - boussinesqPres(k, cell1)
@@ -962,29 +972,35 @@ contains
                p0x(iq) = p0x(1) + xq(iq)*(p0x(nQuad) - p0x(1))
             end do
 
-            Lambdax(:) = lambda0x(:)/alphax(:)
-            alphax(:) = alphax(:)*rho_sw
-            Px(:) = Pi_barx(:) + p0x(:) + Lambdax(:)
-            epsx(:) = deltaPix(:)/(2.0_RKIND*Px(:))
-            eps2x(:) = epsx(:)*epsx(:)
-            seriesx(:) = 1.0_RKIND + eps2x(:)*(1.0_RKIND/3.0_RKIND &
-               + eps2x(:)*(1.0_RKIND/5.0_RKIND + eps2x(:)*(1.0_RKIND/7.0_RKIND &
-               + eps2x(:)*(1.0_RKIND/9.0_RKIND + eps2x(:)*(1.0_RKIND/11.0_RKIND)))))
+            do iq=1,nQuad
+               Lambdax(iq) = lambda0x(iq)/alphax(iq)
+               alphax(iq) = alphax(iq)*rho_sw
+               Px(iq) = Pi_barx(iq) + p0x(iq) + Lambdax(iq)
+               epsx(iq) = deltaPix(iq)/(2.0_RKIND*Px(iq))
+               eps2x(iq) = epsx(iq)*epsx(iq)
+               seriesx(iq) = 1.0_RKIND + eps2x(iq)*(1.0_RKIND/3.0_RKIND &
+                  + eps2x(iq)*(1.0_RKIND/5.0_RKIND &
+                  + eps2x(iq)*(1.0_RKIND/7.0_RKIND &
+                  + eps2x(iq)*(1.0_RKIND/9.0_RKIND &
+                  + eps2x(iq)*(1.0_RKIND/11.0_RKIND)))))
 
-
-            layerIntegral = layerIntegral + &
-               sum(wq(:) * deltaPix(:)/alphax(:) &
-                   * (1.0_RKIND - Lambdax(:)/Px(:)*seriesx(:)))
+               layerIntegral = layerIntegral &
+                  + wq(iq) * deltaPix(iq)/alphax(iq) &
+                  * (1.0_RKIND - Lambdax(iq)/Px(iq)*seriesx(iq))
+            end do
 
             layerPressureIntegralKp1 = (boussinesqPres(k+1, cell2) &
                                         - boussinesqPres(k+1, cell1)) &
                                        * layerIntegral
 
             tend_normalVelocity(k, iEdge) = tend_normalVelocity(k, iEdge) &
-               + edgeMask(k, iEdge)/(dcEdge(iEdge)*rho_sw**2*gravity) &
-               * (vertPressureIntegral(k, cell2) &
-                  - vertPressureIntegral(k, cell1) &
-                  + layerPressureIntegralK - layerPressureIntegralKp1)
+               + coeff * (vertPressureIntegral(k, cell2) &
+                          - vertPressureIntegral(k, cell1) &
+                          + layerPressureIntegralK - layerPressureIntegralKp1)
+if(iEdge == 2 .and. k == 1) then
+print *, "tend_normalVelocity", tend_normalVelocity(k, iEdge)
+stop(1)
+end if
 
             layerPressureIntegralK = layerPressureIntegralKp1
 
