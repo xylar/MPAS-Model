@@ -21,7 +21,7 @@ def write_from_template(inFile,outFile,replacements):
     outID = open(outFile, 'w')
 
     for line in inID:
-        for src, target in replacements.iteritems():
+        for src, target in replacements.items():
             line = line.replace(src, target)
         outID.write(line)
     inID.close()
