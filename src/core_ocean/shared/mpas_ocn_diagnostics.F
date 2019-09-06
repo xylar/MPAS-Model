@@ -2121,22 +2121,19 @@ contains
          xiN = 0.052_RKIND              ! dimensionless planetary boundary layer constant
 
 
-      if ( trim(config_land_ice_flux_mode) .ne. 'standalone' .and. trim(config_land_ice_flux_mode) .ne. 'coupled' ) then
+      if (( trim(config_land_ice_flux_mode) == 'off' ) .or.  &
+          ( trim(config_land_ice_flux_mode) == 'pressure_only')) then
+         ! nothing to do here
          return
       end if
 
       call mpas_timer_start("land_ice_diagnostic_fields", .false.)
 
+      ! From here on, were in 'prescribed', 'standalone' or 'coupled' mode
+
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
-      call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
-      call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
-      call mpas_pool_get_array(tracersPool, 'activeTracers', activeTracers, timeLevel)
-      call mpas_pool_get_dimension(tracersPool, 'index_temperature', indexT)
-      call mpas_pool_get_dimension(tracersPool, 'index_salinity', indexS)
 
       call mpas_pool_get_array(forcingPool, 'landIceFraction', landIceFraction)
-      call mpas_pool_get_array(forcingPool, 'landIceMask', landIceMask)
-
 
       allocate(blTempScratch(nCellsAll), &
                blSaltScratch(nCellsAll))
@@ -2158,13 +2155,34 @@ contains
       end do
       !$omp end do
 
-      ! compute top drag magnitude and friction velocity at cell centers
+      ! compute top drag magnitude at cell centers
       !$omp do schedule(runtime)
       do iCell = 1, nCellsAll
          ! the magnitude of the top drag is CD*u**2 = CD*(2*KE)
          topDragMag(iCell) = rho_sw * landIceFraction(iCell) &
                            * 2.0_RKIND * config_land_ice_flux_topDragCoeff *  kineticEnergyCell(minLevelCell(iCell),iCell)
+      end do
+      !$omp end do
 
+      if ( trim(config_land_ice_flux_mode) == 'prescribed' ) then
+         ! top drag is set, and that's all we need in prescribed mode
+         call mpas_timer_stop("land_ice_diagnostic_fields")
+         return
+      end if
+
+      ! From here on, were in standalone' or 'coupled' mode
+
+      call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
+      call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
+      call mpas_pool_get_array(tracersPool, 'activeTracers', activeTracers, timeLevel)
+      call mpas_pool_get_dimension(tracersPool, 'index_temperature', indexT)
+      call mpas_pool_get_dimension(tracersPool, 'index_salinity', indexS)
+
+      call mpas_pool_get_array(forcingPool, 'landIceMask', landIceMask)
+
+      ! compute friction velocity at cell centers
+      !$omp do schedule(runtime)
+      do iCell = 1, nCellsAll
          ! the friction velocity is the square root of the top drag + variance of tidal velocity
          ! (computed regardless of land-ice coverage)
          landIceFrictionVelocity(iCell) = sqrt(config_land_ice_flux_topDragCoeff * &

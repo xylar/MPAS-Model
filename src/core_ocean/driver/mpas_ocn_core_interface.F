@@ -119,6 +119,7 @@ module ocn_core_interface
       logical, pointer :: variableBottomDragPKGActive
       logical, pointer :: tracerBudgetActive
       logical, pointer :: landIcePressurePKGActive
+      logical, pointer :: prescribedLandIceFluxesPKGActive
       logical, pointer :: landIceFluxesPKGActive
       logical, pointer :: landIceCouplingPKGActive
       logical, pointer :: thicknessBulkPKGActive
@@ -277,11 +278,15 @@ module ocn_core_interface
       ! test for land ice coupling, landIceCouplingPKG
       !
       call mpas_pool_get_package(packagePool, 'landIcePressurePKGActive', landIcePressurePKGActive)
+      call mpas_pool_get_package(packagePool, 'prescribedLandIceFluxesPKGActive', prescribedLandIceFluxesPKGActive)
       call mpas_pool_get_package(packagePool, 'landIceFluxesPKGActive', landIceFluxesPKGActive)
       call mpas_pool_get_package(packagePool, 'landIceCouplingPKGActive', landIceCouplingPKGActive)
       call mpas_pool_get_config(configPool, 'config_land_ice_flux_mode', config_land_ice_flux_mode)
       if ( trim(config_land_ice_flux_mode) == 'pressure_only' ) then
          landIcePressurePKGActive = .true.
+      else if ( trim(config_land_ice_flux_mode) == 'prescribed' ) then
+         landIcePressurePKGActive = .true.
+         prescribedLandIceFluxesPKGActive = .true.
       else if ( trim(config_land_ice_flux_mode) == 'standalone' ) then
          landIcePressurePKGActive = .true.
          landIceFluxesPKGActive = .true.

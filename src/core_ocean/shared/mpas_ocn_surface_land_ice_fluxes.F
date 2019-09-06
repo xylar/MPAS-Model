@@ -11,7 +11,7 @@
 !
 !> \brief MPAS ocean surface land-ice fluxes
 !> \author Xylar Asay-Davis
-!> \date   10/02/2014
+!> \date   30 March 2021
 !> \details
 !>  This module contains routines for computing surface flux related
 !>  melting under land-ice.
@@ -61,7 +61,9 @@ module ocn_surface_land_ice_fluxes
 
    logical :: &
       landIceFluxesOff, &! on/off switch for land ice fluxes
-      standaloneOff,    &! flag to determine coupled or standalone
+      standaloneOn,     &! flag to determine if using standalone fluxes
+      coupledOn,        &! flag to determine if using fluxes from the coupler
+      prescribedOn ,    &! flag to determine if using prescribed fluxes
       isomipOn,         &! use ISOMIP flux formulation
       jenkinsOn,        &! use Jenkins flux formulation
       hollandJenkinsOn, &! use Holland-Jenkins flux formulation
@@ -238,7 +240,7 @@ contains
 !
 !> \brief   Add land-ice fluxes to surfaceThicknessFlux.
 !> \author  Xylar Asay-Davis
-!> \date    11 September 2015
+!> \date    30 March 2021
 !> \details
 !>  This routine adds land-ice freshwater fluxes to the surface thickness flux
 !>  to be converted into a thickness tendency later.
@@ -279,7 +281,8 @@ contains
       integer :: iCell
       integer, pointer :: nCells
 
-      real (kind=RKIND), dimension(:), pointer :: landIceFreshwaterFlux
+      real (kind=RKIND), dimension(:), pointer :: landIceFreshwaterFlux, &
+                                                  prescribedLandIceFreshwaterFlux
 
       err = 0
 
@@ -291,11 +294,20 @@ contains
 
       call mpas_pool_get_array(forcingPool, 'landIceFreshwaterFlux', landIceFreshwaterFlux)
 
+      if ( prescribedOn ) then
+         call mpas_pool_get_array(forcingPool, 'prescribedLandIceFreshwaterFlux', prescribedLandIceFreshwaterFlux)
+         !$omp do schedule(runtime)
+         do iCell = 1, nCells
+            landIceFreshwaterFlux(iCell) = prescribedLandIceFreshwaterFlux(iCell)
+         end do
+         !$omp end do
+      end if
+
       ! Build surface fluxes at cell centers
       !$omp parallel
       !$omp do schedule(runtime)
       do iCell = 1, nCells
-        surfaceThicknessFlux(iCell) = surfaceThicknessFlux(iCell) + landIceFreshwaterFlux(iCell) / rho_sw
+         surfaceThicknessFlux(iCell) = surfaceThicknessFlux(iCell) + landIceFreshwaterFlux(iCell) / rho_sw
       end do
       !$omp end do
       !$omp end parallel
@@ -310,7 +322,7 @@ contains
 !
 !> \brief   Adds the active tracers fluxes from land-ice melting.
 !> \author  Xylar Asay-Davis
-!> \date    11 September 2015
+!> \date    30 March 2021
 !> \details
 !>  This routine adds the active tracers fluxes to surface fluxes
 !>  from which tracer tendencies are computed later.
@@ -351,7 +363,8 @@ contains
       integer :: iCell
       integer, pointer :: nCells
 
-      real (kind=RKIND), dimension(:), pointer :: landIceHeatFlux
+      real (kind=RKIND), dimension(:), pointer :: landIceHeatFlux, &
+                                                  prescribedLandIceHeatFlux
 
       err = 0
 
@@ -360,6 +373,15 @@ contains
       call mpas_pool_get_dimension(meshPool, 'nCells', nCells)
 
       call mpas_pool_get_array(forcingPool, 'landIceHeatFlux', landIceHeatFlux)
+
+      if ( prescribedOn ) then
+         call mpas_pool_get_array(forcingPool, 'prescribedLandIceHeatFlux', prescribedLandIceHeatFlux)
+         !$omp do schedule(runtime)
+         do iCell = 1, nCells
+            landIceHeatFlux(iCell) = prescribedLandIceHeatFlux(iCell)
+         end do
+         !$omp end do
+      end if
 
       ! add to surface fluxes at cell centers
       !$omp parallel
@@ -379,7 +401,7 @@ contains
 !
 !> \brief Builds the forcing array for land-ice forcing
 !> \author Xylar Asay-Davis
-!> \date   10/02/2014
+!> \date   30 March 2021
 !> \details
 !>  This routine computes surface fluxes related to land-ice forcing based
 !>  on diagnostics from the previous time step.
@@ -460,7 +482,7 @@ contains
 
       err = 0
 
-      if (standaloneOff) return
+      if (.not. standaloneOn) return
 
       call mpas_timer_start("land_ice_build_arrays")
 
@@ -530,7 +552,7 @@ contains
          !$omp end do
          !$omp end parallel
       endif ! isomipOn
-      
+
       if (jenkinsOn .or. hollandJenkinsOn) then
          if(useHollandJenkinsAdvDiff) then
             ! melting solution
@@ -644,7 +666,7 @@ contains
 !
 !> \brief Initializes land-ice forcing
 !> \author Xylar Asay-Davis
-!> \date   10/02/2014
+!> \date   30 March 2021
 !> \details
 !>  This routine initializes a variety of quantities related to
 !>  land-ice forcing.
@@ -668,7 +690,9 @@ contains
       err = 0
 
       landIceFluxesOff = .true.
-      standaloneOff    = .true.
+      standaloneOn     = .false.
+      coupledOn        = .false.
+      prescribedOn     = .false.
       isomipOn         = .false.
       jenkinsOn        = .false.
       hollandJenkinsOn = .false.
@@ -681,13 +705,15 @@ contains
       select case (trim(config_land_ice_flux_mode))
       case ('standalone','Standalone','STANDALONE')
          landIceFluxesOff = .false.
-         standaloneOff    = .false.
+         standaloneOn     = .true.
       case ('coupled','Coupled','COUPLED')
          landIceFluxesOff = .false.
-         standaloneOff    = .true.
+         coupledOn        = .true.
+      case ('prescribed','Prescribed','PRESCRIBED')
+         landIceFluxesOff = .false.
+         prescribedOn     = .true.
       case default
          landIceFluxesOff = .true.
-         standaloneOff    = .true.
          return
       end select
 
