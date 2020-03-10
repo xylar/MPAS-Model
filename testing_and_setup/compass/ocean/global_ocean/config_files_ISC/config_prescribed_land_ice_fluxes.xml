@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<config case="prescribed_land_ice_fluxes">
+	<add_link source="../../init/initial_state/initial_state.nc" dest="mesh.nc"/>
+	<copy_file source_path="script_configuration_dir" source="scripts/config_prescribed_land_ice_fluxes.ini" dest="config_prescribed_land_ice_fluxes.ini"/>
+    <add_link source_path="script_configuration_dir" source="scripts/create_prescribed_land_ice_fluxes.py" dest="create_prescribed_land_ice_fluxes.py"/>
+	<add_link source_path="initial_condition_database" source="MeltRatesRignot2013.nc" dest="MeltRatesRignot2013.nc"/>
+
+	<run_script name="run.py">
+		<step executable="./create_prescribed_land_ice_fluxes.py">
+		</step>
+	</run_script>
+</config>

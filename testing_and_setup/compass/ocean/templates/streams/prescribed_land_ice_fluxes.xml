@@ -1,0 +1,13 @@
+<template>
+	<streams>
+		<stream name="prescribed_land_ice_fluxes">
+			<attribute name="filename_template">prescriped_land_ice_fluxes_rignot2013.nc</attribute>
+			<attribute name="input_interval">initial_only</attribute>
+			<attribute name="type">input</attribute>
+			<add_contents>
+				<member name="prescribedLandIceFreshwaterFlux" type="var"/>
+				<member name="prescribedLandIceHeatFlux" type="var"/>
+			</add_contents>
+		</stream>
+	</streams>
+</template>
