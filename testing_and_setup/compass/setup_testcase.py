@@ -708,7 +708,7 @@ def process_script_step(step, configs, indentation, script_file):  # {{{
 
     script_file.write("{}# Run command is:\n".format(indentation))
 
-    command_args = [executable]
+    command_args = add_executable_prefix(executable, configs)
     # Process step arguments
     for argument in step:
         if argument.tag == 'argument':
@@ -1549,6 +1549,18 @@ def get_case_name(config_file):  # {{{
 
     return name
 # }}}
+
+
+def add_executable_prefix(executable, configs):  # {{{
+    prefix = list()
+    if configs.has_section('conda'):
+        if configs.has_option('conda', 'python_prefix'):
+            if executable.startswith('python') or executable.endswith('.py'):
+                prefix = configs.get('conda', 'python_prefix').split(' ')
+
+    command_args = prefix + [executable]
+    return command_args
+# }}}
 # }}}
 
 
@@ -1590,6 +1602,9 @@ if __name__ == "__main__":
                         help="If set, script will create case directories in "
                              "work_dir rather than the current directory.",
                         metavar="PATH")
+    parser.add_argument("--conda_mpi", dest="conda_mpi", action="store_true",
+                        help="If set, use MPI from compass conda env. for "
+                             "python")
 
     args = parser.parse_args()
 
@@ -1677,6 +1692,22 @@ if __name__ == "__main__":
     else:
         config.set('script_input_arguments', 'model_runtime',
                    args.model_runtime)
+
+    if not config.has_section('conda'):
+        config.add_section('conda')
+
+    if not config.has_option('conda', 'use_conda_mpi'):
+        config.set('conda', 'use_conda_mpi', 'False')
+
+    if args.conda_mpi:
+        config.set('conda', 'use_conda_mpi', 'True')
+
+    if config.getboolean('conda', 'use_conda_mpi'):
+        if 'CONDA_PREFIX' not in os.environ:
+            raise ValueError('conda MPI is on but it appears you have not '
+                             'loaded a conda environment')
+        mpirun_path = '{}/bin/mpirun'.format(os.environ['CONDA_PREFIX'])
+        config.set('conda', 'python_prefix', '{} -np 1'.format(mpirun_path))
 
     # Build variables for history output
     old_dir = os.getcwd()
