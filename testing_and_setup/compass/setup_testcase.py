@@ -26,6 +26,7 @@ from six.moves import configparser
 import textwrap
 import netCDF4
 import shutil
+import errno
 
 try:
     from collections import defaultdict
@@ -516,6 +517,8 @@ def generate_driver_scripts(config_file, configs):  # {{{
         # Ensure work_dir exists before writing driver script there.
         if not os.path.exists(init_path):
             os.makedirs(init_path)
+
+        link_load_compass_env(init_path, configs)
 
         # Create script file
         script = open('{}/{}'.format(init_path, name), 'w')
@@ -1561,6 +1564,22 @@ def add_executable_prefix(executable, configs):  # {{{
     command_args = prefix + [executable]
     return command_args
 # }}}
+
+def link_load_compass_env(init_path, configs):  # {{{
+
+    if configs.getboolean('conda', 'link_load_compass'):
+        target = configs.get('conda', 'load_compass_script')
+
+        link_name = '{}/load_compass_env.sh'.format(init_path)
+        try:
+            os.symlink(target, link_name)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                os.remove(link_name)
+                os.symlink(target, link_name)
+            else:
+                raise e
+# }}}
 # }}}
 
 
@@ -1605,6 +1624,10 @@ if __name__ == "__main__":
     parser.add_argument("--conda_mpi", dest="conda_mpi", action="store_true",
                         help="If set, use MPI from compass conda env. for "
                              "python")
+    parser.add_argument("--link_load_compass", dest="link_load_compass",
+                        action="store_true",
+                        help="If set, a link to load_compass_env.sh is included"
+                             " with each test case")
 
     args = parser.parse_args()
 
@@ -1708,6 +1731,17 @@ if __name__ == "__main__":
                              'loaded a conda environment')
         mpirun_path = '{}/bin/mpirun'.format(os.environ['CONDA_PREFIX'])
         config.set('conda', 'python_prefix', '{} -np 1'.format(mpirun_path))
+
+    if not config.has_option('conda', 'link_load_compass'):
+        config.set('conda', 'link_load_compass', 'False')
+
+    if args.link_load_compass:
+        config.set('conda', 'link_load_compass', 'True')
+
+    if config.getboolean('conda', 'link_load_compass'):
+        load_script = '{}/load_compass_env.sh'.format(
+            os.path.dirname(os.path.abspath(__file__)))
+        config.set('conda', 'load_compass_script', load_script)
 
     # Build variables for history output
     old_dir = os.getcwd()
