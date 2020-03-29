@@ -36,7 +36,7 @@ model = FULL_PATH_TO_MPAS_MODEL_REPO/ocean_model
 # the same directory, or different directory. Additionally, if they are empty
 # some test cases might download data into them, which will then be reused if
 # the test case is run again later.
-mpas_model = FULL_PATH_TO_MPAS_MODEL_REPO
+mpas_code = FULL_PATH_TO_MPAS_MODEL_REPO
 mesh_database = FULL_PATH_TO_LOCAL_MESH_DATABASE
 initial_condition_database = FULL_PATH_TO_LOCAL_INITIAL_CONDITION_DATABASE
 bathymetry_database = FULL_PATH_TO_BATHYMETRY_DATABASE

@@ -4,8 +4,8 @@
 		<mirror protocol="wget" url="https://web.lcrc.anl.gov/public/e3sm/mpas_standalonedata/mpas-ocean/bathymetry_database/"/>
 	</get_file>
 
-	<add_link source_path="mpas_model" source="testing_and_setup/compass/ocean/jigsaw_to_MPAS" dest="jigsaw_to_MPAS"/>
-	<add_link source_path="mpas_model" source="testing_and_setup/compass/ocean/jigsaw_to_MPAS/jigsaw_driver.m" dest="jigsaw_driver.m"/>
+	<add_link source_path="mpas_code" source="testing_and_setup/compass/ocean/jigsaw_to_MPAS" dest="jigsaw_to_MPAS"/>
+	<add_link source_path="mpas_code" source="testing_and_setup/compass/ocean/jigsaw_to_MPAS/jigsaw_driver.m" dest="jigsaw_driver.m"/>
 	<add_link source_path="script_test_dir" source="." dest="define_base_mesh"/>
 	<add_link source_path="bathymetry_database" source="SRTM15_plus_earth_relief_15s.nc" dest="earth_relief_15s.nc"/>
 

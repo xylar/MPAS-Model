@@ -231,7 +231,7 @@ model = /usr/projects/climate/cbegeman/mpas/model/ocean/update_isomip_plus_viz/o
 # the same directory, or different directory. Additionally, if they are empty
 # some test cases might download data into them, which will then be reused if
 # the test case is run again later.
-mpas_model = /usr/projects/climate/cbegeman/mpas/model/ocean/update_isomip_plus_viz
+mpas_code = /usr/projects/climate/cbegeman/mpas/model/ocean/update_isomip_plus_viz
 mesh_database = /usr/projects/regionalclimate/COMMON_MPAS/ocean/grids/mesh_database
 initial_condition_database = /usr/projects/regionalclimate/COMMON_MPAS/ocean/grids/initial_condition_database
 bathymetry_database = /usr/projects/regionalclimate/COMMON_MPAS/ocean/grids/bathymetry_database
