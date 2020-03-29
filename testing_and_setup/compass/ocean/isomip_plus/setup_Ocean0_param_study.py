@@ -17,10 +17,10 @@ for index in range(len(GammaTs)):
     GammaTStrings.append('%g'%GammaTs[index])
     GammaSStrings.append('%g'%GammaSs[index])
 
-args = ['../../utility_scripts/make_parameter_study_configs.py', '-t', 
+args = ['../../utility_scripts/make_parameter_study_configs.py', '-t',
         'template_Ocean0_param_study.xml', '-o', '2km/Ocean0/config_GammaT',
         '-p', 'GammaT=%s'%','.join(GammaTStrings),
         'GammaS=%s'%','.join(GammaSStrings)]
-        
-print 'running %s'%' '.join(args)
+
+print('running %s'%' '.join(args))
 subprocess.check_call(args)
