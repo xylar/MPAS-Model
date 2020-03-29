@@ -22,7 +22,7 @@ import fnmatch
 import argparse
 import xml.etree.ElementTree as ET
 import subprocess
-from six.moves import configparser
+import configparser
 import textwrap
 import netCDF4
 import shutil
@@ -1625,10 +1625,8 @@ if __name__ == "__main__":
         case_list = list()
         case_list.append(0)
 
-    if sys.version_info >= (3, 2):
-        config = configparser.ConfigParser()
-    else:
-        config = configparser.SafeConfigParser()
+    config = configparser.ConfigParser(
+        interpolation=configparser.ExtendedInterpolation())
     config.read(args.config_file)
 
     if not args.no_download:
