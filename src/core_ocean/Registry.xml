@@ -2171,6 +2171,15 @@
 		/>
 	</var_struct>
 	<var_struct name="diagnostics" time_levs="1">
+		<var name="testMissingVar" type="real" dimensions="nVertLevels nCells Time" units="unitless" missing_value="9.969209968386869e36"
+			description="A variable that is zero where valid and missing_value where not"
+		/>
+		<var_array name="testMissingArray" type="real" dimensions="nVertLevels nCells Time" missing_value="9.969209968386869e36">
+			<var name="testMissingArrayVar" array_group="testMissingGroup" units="unitless"
+				description="A variable that is one where valid and missing_value where not"
+			/>
+		</var_array>
+
 		<var name="xtime" type="text" dimensions="Time" units="unitless"
 			 description="model time, with format 'YYYY-MM-DD_HH:MM:SS'"
 		/>

@@ -20,6 +20,17 @@
 		<stream name="input">
 			<attribute name="filename_template">init.nc</attribute>
 		</stream>
+		<stream name="testMissing">
+			<attribute name="type">output</attribute>
+			<attribute name="filename_template">test_missing.nc</attribute>
+			<attribute name="output_interval">00-00-01_00:00:00</attribute>
+			<attribute name="clobber_mode">truncate</attribute>
+			<add_contents>
+				<member name="mesh" type="stream"/>
+				<member name="testMissingVar" type="var"/>
+				<member name="testMissingArray" type="var_array"/>
+			</add_contents>
+		</stream>
 		<template file="template_forward.xml" path_base="script_configuration_dir"/>
 		<template file="minimal_output.xml" path_base="script_core_dir" path="templates/streams"/>
 		<template file="template_daily_output.xml" path_base="script_configuration_dir"/>

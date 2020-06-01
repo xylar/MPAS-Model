@@ -129,9 +129,9 @@ contains
         normalizedRelativeVorticityVertex, normalizedRelativeVorticityCell, density, displacedDensity, potentialDensity, &
         temperature, salinity, kineticEnergyVertex, kineticEnergyVertexOnCells, vertVelocityTop, vertTransportVelocityTop, &
         vertGMBolusVelocityTop, BruntVaisalaFreqTop, vorticityGradientNormalComponent, vorticityGradientTangentialComponent, &
-        RiTopOfCell, inSituThermalExpansionCoeff, inSituSalineContractionCoeff
+        RiTopOfCell, inSituThermalExpansionCoeff, inSituSalineContractionCoeff, testMissingVar
 
-      real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers, derivTwo
+      real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers, derivTwo, testMissingArray
       character :: c1*6
 
       real (kind=RKIND), dimension(:,:), pointer :: tracersSurfaceValue
@@ -186,6 +186,9 @@ contains
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
       call mpas_pool_get_array(tracersPool, 'activeTracers', activeTracers, timeLevel)
       call mpas_pool_get_array(statePool, 'ssh', ssh, timeLevel)
+
+      call mpas_pool_get_array(diagnosticsPool, 'testMissingVar', testMissingVar)
+      call mpas_pool_get_array(diagnosticsPool, 'testMissingArray', testMissingArray)
 
       call mpas_pool_get_array(diagnosticsPool, 'zMid', zMid)
       call mpas_pool_get_array(diagnosticsPool, 'zTop', zTop)
@@ -314,11 +317,20 @@ contains
 
       coef_3rd_order = config_coef_3rd_order
 
+      nCells = nCellsArray( 1 )
+      do iCell = 1, nCells
+        do k = 1, maxLevelCell(iCell)
+          testMissingVar(k, iCell) = 0.0_RKIND
+          testMissingArray(1, k, iCell) = 1.0_RKIND
+        end do
+      end do
+
       !
       ! set the velocity and height at dummy address
       !    used -1e34 so error clearly occurs if these values are used.
       !
 
+      nCells = nCellsArray( size(nCellsArray) )
       !$omp master
       normalVelocity(:,nEdges+1) = -1e34
       layerThickness(:,nCells+1) = -1e34
