@@ -2226,7 +2226,7 @@
 		<var name="salinitySurfaceRestoringTendency" type="real" dimensions="nCells Time" units="m PSU/s" packages="activeTracersSurfaceRestoringPKG"
 			 description="salinity tendency due to surface restoring"
 		/>
-		<var_array name="activeTracerSurfaceFluxTendency" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget">
+		<var_array name="activeTracerSurfaceFluxTendency" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget" missing_value="FILLVAL">
 
 			<var name="temperatureSurfaceFluxTendency" array_group="activeTracerSfcFluxTendGroup" units="degrees Celsius per second" name_in_code="temperatureSurfaceFluxTendency"
 				description="potential temperature tendency due to surface fluxes"
@@ -2246,7 +2246,7 @@
 				description="salinity tendency due to horizontal mixing (including Redi)"
 			/>
 		</var_array>
-		<var_array name="activeTracerNonLocalTendency" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget">
+		<var_array name="activeTracerNonLocalTendency" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget" missing_value="FILLVAL">
 			<var name="temperatureNonLocalTendency" array_group="activeTracerNLTendGroup" units="degrees Celsius per second" name_in_code="temperatureNonLocalTendency"
 				 description="potential temperature tendency due to kpp non-local flux"
 			/>
@@ -2254,7 +2254,7 @@
 				 description="salinity tendency due to kpp non-local flux"
 			/>
 		</var_array>
-		<var_array name="activeTracerVerticalAdvectionTopFlux" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget">
+		<var_array name="activeTracerVerticalAdvectionTopFlux" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget" missing_value="FILLVAL">
 			<var name="temperatureVerticalAdvectionTopFlux" array_group="activeTracerVertTopFluxGroup" units="C m s^{-1}" name_in_code="temperatureVerticalAdvectionTopFlux"
 				description="potential temperature vertical advective flux through top of cell"
 			/>
@@ -2262,7 +2262,7 @@
 				description="salinity advective vertical advective flux through top of cell"
 			/>
 		</var_array>
-		<var_array name="activeTracerHorizontalAdvectionEdgeFlux" type="real" dimensions="nVertLevels nEdges Time" packages="tracerBudget">
+		<var_array name="activeTracerHorizontalAdvectionEdgeFlux" type="real" dimensions="nVertLevels nEdges Time" packages="tracerBudget" missing_value="FILLVAL">
 			<var name="temperatureHorizontalAdvectionEdgeFlux" array_group="activeTracerHorAdvEdgeFluxGroup" units="C m s^{-1}" name_in_code="temperatureHorizontalAdvectionEdgeFlux"
 				description="potential temperature advective flux due to horizontal advection through edges"
 			/>
@@ -2270,7 +2270,7 @@
 				description="salinity advective flux due to horizontal advection through edges"
 			/>
 		</var_array>
-		<var_array name="activeTracerHorizontalAdvectionTendency" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget">
+		<var_array name="activeTracerHorizontalAdvectionTendency" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget" missing_value="FILLVAL">
 			<var name="temperatureHorizontalAdvectionTendency" array_group="activeTracerHorAdvTendGroup" units="degrees Celsius per second" name_in_code="temperatureHorizontaldvectionTendency"
 				description="potential temperature tendency due to horizontal advection"
 			/>
@@ -2278,7 +2278,7 @@
 				description="salinity tendency due to horizontal advection"
 			/>
 		</var_array>
-		<var_array name="activeTracerVerticalAdvectionTendency" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget">
+		<var_array name="activeTracerVerticalAdvectionTendency" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget" missing_value="FILLVAL">
 			<var name="temperatureVerticalAdvectionTendency" array_group="activeTracerVertAdvTendGroup" units="degrees Celsius per second" name_in_code="temperatureVerticalAdvectionTendency"
 				description="potential temperature tendency due to vertical advection"
 			/>
@@ -2286,7 +2286,7 @@
 				description="salinity tendency due to vertical advection"
 			/>
 		</var_array>
-		<var_array name="activeTracerVertMixTendency" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget">
+		<var_array name="activeTracerVertMixTendency" type="real" dimensions="nVertLevels nCells Time" packages="tracerBudget" missing_value="FILLVAL">
 			<var name="temperatureVertMixTendency" array_group="activeTracerVertMixTendGroup" units="degrees Celsius per second" name_in_code="temperatureVertMixTendency"
 				 description="potential temperature tendency due to vertical mixing"
 			/>
