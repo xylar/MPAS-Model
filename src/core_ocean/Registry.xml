@@ -2188,10 +2188,12 @@
 		<var name="tendNormalVelocity" type="real" dimensions="nVertLevels nEdges Time" units="m s^{-2}" name_in_code="normalVelocity"
 			 description="time tendency of normal component of velocity"
 			 packages="forwardMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="tendLayerThickness" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}" name_in_code="layerThickness"
 			 description="time tendency of layer thickness"
 			 packages="forwardMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="tendSSH" type="real" dimensions="nCells Time" units="m s^{-1}" name_in_code="ssh"
 			 description="time tendency of sea-surface height"
@@ -2200,10 +2202,12 @@
 		<var name="tendHighFreqThickness" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}" name_in_code="highFreqThickness"
 			 description="time tendency of high frequency-filtered layer thickness"
 			 packages="thicknessFilter"
+			 missing_value="FILLVAL"
 		/>
 		<var name="tendLowFreqDivergence" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}" name_in_code="lowFreqDivergence"
 			 description="time tendency of low frequency-filtered divergence"
 			 packages="thicknessFilter"
+			 missing_value="FILLVAL"
 		/>
 	</var_struct>
 	<var_struct name="diagnostics" time_levs="1">
