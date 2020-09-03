@@ -2101,6 +2101,7 @@
 		<var name="highOrderAdvectionMask" type="integer" dimensions="nVertLevels nEdges" units="unitless"
 			 description="Mask for high order advection. Values are 1 if high order is used, and 0 if not."
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="coeffs_reconstruct" type="real" dimensions="R3 maxEdges nCells" units="unitless"
 			 description="Coefficients to reconstruct velocity vectors at cells centers."
@@ -2135,21 +2136,27 @@
 		/>
 		<var name="boundaryEdge" type="integer" dimensions="nVertLevels nEdges" units="unitless"
 			 description="Mask for determining boundary edges. A boundary edge has only one active ocean cell neighboring it."
+			 missing_value="FILLVAL"
 		/>
 		<var name="boundaryVertex" type="integer" dimensions="nVertLevels nVertices" units="unitless"
 			 description="Mask for determining boundary vertices. A boundary vertex has at least one inactive cell neighboring it."
+			 missing_value="FILLVAL"
 		/>
 		<var name="boundaryCell" type="integer" dimensions="nVertLevels nCells" units="unitless"
 			 description="Mask for determining boundary cells. A boundary cell has at least one inactive cell neighboring it."
+			 missing_value="FILLVAL"
 		/>
 		<var name="edgeMask" type="integer" dimensions="nVertLevels nEdges" units="unitless"
 			 description="Mask on edges that determines if computations should be done on edges."
+			 missing_value="FILLVAL"
 		/>
 		<var name="vertexMask" type="integer" dimensions="nVertLevels nVertices" units="unitless"
 			 description="Mask on vertices that determines if computations should be done on vertices."
+			 missing_value="FILLVAL"
 		/>
 		<var name="cellMask" type="integer" dimensions="nVertLevels nCells" units="unitless"
 			 description="Mask on cells that determines if computations should be done on cells."
+			 missing_value="FILLVAL"
 		/>
 		<var name="edgeSignOnCell" type="integer" dimensions="maxEdges nCells" units="unitless"
 			 description="Sign of edge contributions to a cell for each edge on cell. Used for bit-reproducible loops. Represents directionality of vector connecting cells."
