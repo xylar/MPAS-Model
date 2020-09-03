@@ -1859,9 +1859,11 @@
 	<var_struct name="state" time_levs="2">
 		<var name="normalVelocity" type="real" dimensions="nVertLevels nEdges Time" units="m s^{-1}"
 			 description="horizontal velocity, normal component to an edge"
+			 missing_value="FILLVAL"
 		/>
 		<var name="layerThickness" type="real" dimensions="nVertLevels nCells Time" units="m"
 			 description="layer thickness"
+			 missing_value="FILLVAL"
 		/>
 		<var name="ssh" type="real" dimensions="nCells Time" units="m"
 			 description="sea surface height"
@@ -1871,10 +1873,12 @@
 		<var name="highFreqThickness" type="real" dimensions="nVertLevels nCells Time" units="m"
 			 description="high frequency-filtered layer thickness"
 			 packages="thicknessFilter"
+			 missing_value="FILLVAL"
 		/>
 		<var name="lowFreqDivergence" type="real" dimensions="nVertLevels nCells Time" units="s^{-1}"
 			 description="low frequency-filtered divergence"
 			 packages="thicknessFilter"
+			 missing_value="FILLVAL"
 		/>
 
 		<!-- FIELDS FOR FRAZIL ICE -->
@@ -1918,6 +1922,7 @@
 		<var name="normalBaroclinicVelocity" type="real" dimensions="nVertLevels nEdges Time" units="m s^{-1}"
 			 description="baroclinic velocity, used in split-explicit time-stepping"
 			 packages="splitTimeIntegrator"
+			 missing_value="FILLVAL"
 		/>
 
 		<!-- FIELD FOR LAND-ICE COUPLING -->
