@@ -2581,73 +2581,91 @@
 		<var name="gmKappaScaling" type="real" dimensions="nVertLevelsP1 nCells Time" units="NA"
 			description="spatially and depth varying GM kappa.  The scaling is based on the Brunt Vaisala Frequency relative to a maximum value below the mixed layer, follows from Danabasoglu and Marshall 2007.  If config_GM_closure is not set to N2_dependent the scaling value is set to 1 everywhere."
 			packages="gm"
+			missing_value="FILLVAL"
 		/>
 		<var name="RediKappaScaling" type="real" dimensions="nVertLevelsP1 nCells Time" units="NA"
 			description="Scaling coefficient for GM kappa. Varies from 0 to 1.  The scaling is based on the Brunt Vaisala Frequency relative to a maximum value below the mixed layer, follows from Danabasoglu and Marshall 2007.  If config_Redi_use_N2_based_taper = .false. the scaling is set to 1 everywhere."
 			packages="gm"
+			missing_value="FILLVAL"
 		/>
 		<var name="RediKappaSfcTaper" type="real" dimensions="nVertLevelsP1 nCells Time" units="NA"
 			description="Scaling coefficient for Redi kappa. Varies from 0 to 1."
 			packages="gm"
+			missing_value="FILLVAL"
 		/>
 		<var name="rediLimiterCount" type="integer" dimensions="nVertLevels nCells Time" units="NA"
 			description="count of times redi limiter is invoked on a timestep"
 			packages="gm"
+			missing_value="FILLVAL"
 		/>
 		<var name="GMBolusVelocityX" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
 			 description="Bolus velocity in Gent-McWilliams eddy parameterization, x-direction"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="GMBolusVelocityY" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
 			 description="Bolus velocity in Gent-McWilliams eddy parameterization, y-direction"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="GMBolusVelocityZ" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
 			 description="Bolus velocity in Gent-McWilliams eddy parameterization, z-direction"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="GMBolusVelocityZonal" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
 			 description="Bolus velocity in Gent-McWilliams eddy parameterization, zonal-direction"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="GMBolusVelocityMeridional" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
 			 description="Bolus velocity in Gent-McWilliams eddy parameterization, meridional-direction"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="RiTopOfCell" type="real" dimensions="nVertLevelsP1 nCells Time" units="nondimensional"
 			 description="gradient Richardson number defined at the center (horizontally) and top (vertically)"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="RiTopOfEdge" type="real" dimensions="nVertLevelsP1 nEdges Time" units="nondimensional"
 			 description="gradient Richardson number defined at the edge (horizontally) and top (vertically)"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="vertViscTopOfEdge" type="real" dimensions="nVertLevelsP1 nEdges Time" units="m^2 s^{-1}"
 			 description="vertical viscosity defined at the edge (horizontally) and top (vertically)"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="vertViscTopOfCell" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2 s^{-1}"
 			 description="vertical viscosity defined at the cell center (horizontally) and top (vertically)"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="vertDiffTopOfCell" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2 s^{-1}"
 			 description="vertical diffusion defined at the cell center (horizontally) and top (vertically)"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="bulkRichardsonNumber" type="real" dimensions="nVertLevels nCells Time" units="nondimensional"
 			 description="CVMix/KPP: bulk Richardson number"
 			 packages="forwardMode;analysisMode"
-			 />
+			 missing_value="FILLVAL"
+		 />
 		<var name="bulkRichardsonNumberBuoy" type="real" dimensions="nVertLevels nCells Time" units="nondimensional"
 			 description="CVMix/KPP: contribution of buoyancy to bulk Richardson number"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="bulkRichardsonNumberShear" type="real" dimensions="nVertLevels nCells Time" units="nondimensional"
 			 description="CVMix/KPP: contribution of shear to bulk Richardson number"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="unresolvedShear" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
 			 description="CVMix/KPP: contribution of unresolved velocity to vertical shear"
+			 missing_value="FILLVAL"
 		/>
 		<var name="boundaryLayerDepth" type="real" dimensions="nCells Time" units="m"
 			 description="CVMix/KPP: diagnosed depth of the ocean surface boundary layer"
@@ -2690,42 +2708,52 @@
 		<var name="slopeTriadUp" type="real" dimensions="nVertLevels TWO nEdges Time" units="non-dimensional"
 			 description="Magnitude of slope of isopycnal surface, using triad through this cell and edge, angled up. Uses expansion of equation of state."
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="slopeTriadDown" type="real" dimensions="nVertLevels TWO nEdges Time" units="non-dimensional"
 			 description="Magnitude of slope of isopycnal surface, using triad through this cell and edge, angled up. Uses expansion of equation of state."
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="k33" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2 s^{-1}"
 			 description="The (3,3) entry of the Redi diffusion tensor. Added to the model vertical diffusion. Defined at the top of cell k"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="gmStreamFuncTopOfEdge" type="real" dimensions="nVertLevelsP1 nEdges Time" units="m^2 s^{-1}"
 			 description="GM stream function"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="gmStreamFuncTopOfCell" type="real" dimensions="nVertLevels nCells Time" units="m^2 s^{-1}"
 			 description="GM stream function reconstructed to the cell centers"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="GMStreamFuncX" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2 s^{-1}"
 			 description="GM stream function"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="GMStreamFuncY" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2 s^{-1}"
 			 description="GM stream function"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="GMStreamFuncZ" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2 s^{-1}"
 			 description="GM stream function"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="GMStreamFuncZonal" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2 s^{-1}"
 			 description="GM stream function"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="GMStreamFuncMeridional" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2 s^{-1}"
 			 description="GM stream function"
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="gmBolusKappa" type="real" dimensions="nEdges Time" units="m^2 s^{-1}"
 			 description="GM Bolus Kappa value.  This is constant in time, and set at init based on the constant or ramp fuction."
@@ -2778,10 +2806,12 @@
 		<var name="rx1Cell" type="real" dimensions="nVertLevels nCells Time" units="unitless"
 			 description="The Haney number (rx1), a measure of hydrostatic consistency, at cell centers."
 			 packages="initMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="rx1Edge" type="real" dimensions="nVertLevels nEdges Time" units="unitless"
 			 description="The Haney number (rx1), a measure of hydrostatic consistency, at edges."
 			 packages="initMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="rx1MaxCell" type="real" dimensions="nCells Time" units="unitless"
 			 description="The Haney number (rx1) is ratio of vertical displacement to cell thickness between two neighboring horizontal cells.  It is computed at each edge.  This cell-based value is the maximum over all edges and vertical levels of each cell."
@@ -2810,6 +2840,7 @@
 		<var name="verticalStretch" type="real" dimensions="nVertLevels nCells" units="unitless"
 			description="the stretch factor of each layer compared with the default z-level coordinate"
 			packages="initMode"
+			missing_value="FILLVAL"
 		/>
 		<var name="pressureAdjustedSSH" type="real" dimensions="nCells Time" units="m"
 			 description="sea surface height adjusted by sea surface pressure"
