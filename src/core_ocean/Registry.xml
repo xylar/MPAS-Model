@@ -2931,10 +2931,12 @@
 		<var name="fractionAbsorbed" type="real" dimensions="nVertLevels nCells Time" units="fractional"
 			 description="Divergence of transmission through interfaces of surface fluxes below the surface layer at cell centers. These are not applied to short wave."
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 		<var name="fractionAbsorbedRunoff" type="real" dimensions="nVertLevels nCells Time" units="fractional"
 			 description="Divergence of transmission through interfaces of surface fluxes below the surface layer at cell centers. These are applied only to river runoff."
 			 packages="forwardMode;analysisMode"
+			 missing_value="FILLVAL"
 		/>
 
 		<!-- Input fields for coupling -->
@@ -3164,6 +3166,7 @@
 		<var name="tidalLayerThicknessTendency" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
 			 description="layer thickness tendency due to tidal forcing"
 			 packages="tidalForcing"
+			 missing_value="FILLVAL"
 		/>
 
 		<!-- Input fields for forcing due to frazil ice -->
@@ -3172,14 +3175,17 @@
 		<var name="frazilLayerThicknessTendency" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
 			 description="layer thickness tendency due to frazil processes"
 			 packages="frazilIce"
+			 missing_value="FILLVAL"
 		/>
 		<var name="frazilTemperatureTendency" type="real" dimensions="nVertLevels nCells Time" units="m C s^{-1}"
 			 description="temperature tendency due to frazil processes"
 			 packages="frazilIce"
+			 missing_value="FILLVAL"
 		/>
 		<var name="frazilSalinityTendency" type="real" dimensions="nVertLevels nCells Time" units="m PSU s^{-1}"
 			 description="salinity tendency due to frazil processes"
 			 packages="frazilIce"
+			 missing_value="FILLVAL"
 		/>
 		<var name="frazilSurfacePressure" type="real" dimensions="nCells Time" units="Pa"
 			 description="surface pressure forcing due to weight of frazil ice"
@@ -3230,6 +3236,7 @@
 		<var name="tidalPotentialZMid" type="real" dimensions="nVertLevels nCells Time" units="m"
 			description="zMid - Equilibrium tidal potential in RK4"
 			packages="tidalPotentialForcingPKG"
+			missing_value="FILLVAL"
 		/>
 		<var name="sshSubcycleCurWithTides" type="real" dimensions="nCells Time" units="m"
 			description="SSH - tidal potential in split explicit "
