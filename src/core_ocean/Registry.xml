@@ -2175,6 +2175,7 @@
 	<var_struct name="verticalMesh" time_levs="1">
 		<var name="restingThickness" type="real" dimensions="nVertLevels nCells" units="m"
 			 description="Layer thickness when the ocean is at rest, i.e. without SSH or internal perturbations."
+			 missing_value="FILLVAL"
 		/>
 		<var name="refZMid" type="real" dimensions="nVertLevels" units="m"
 			 description="Reference mid z-coordinate of ocean for each vertical level. This has a negative value."
