@@ -28,6 +28,7 @@ from argparse import ArgumentParser
 import xarray
 import logging
 import sys
+import multiprocessing
 
 from geometric_features import GeometricFeatures, FeatureCollection, \
     read_feature_collection
@@ -79,12 +80,22 @@ if __name__ == '__main__':
                              "The default is to use all available cores")
     args = parser.parse_args()
 
+    pool = None
+    if not args.use_mesh_conversion_mask:
+        multiprocessing.set_start_method('fork')
+        process_count = args.mask_creation_process_count
+        if process_count is None:
+            process_count = multiprocessing.cpu_count()
+        else:
+            process_count = min(process_count, multiprocessing.cpu_count())
+
+        if process_count > 1:
+            pool = multiprocessing.Pool(process_count)
+
     # required for compatibility with MPAS
     netcdfFormat = 'NETCDF3_64BIT'
 
     earth_radius = constants['SHR_CONST_REARTH']
-
-    process_count = args.mask_creation_process_count
 
     # set up a logger for masking functions that don't produce output without
     # one
@@ -142,7 +153,7 @@ if __name__ == '__main__':
     else:
         dsLandMask = compute_mpas_region_masks(
             dsMesh=dsBaseMesh, fcMask=fcLandCoverage, maskTypes=('cell',),
-            logger=logger, processCount=process_count, showProgress=True)
+            logger=logger, pool=pool, showProgress=True)
 
     dsLandMask = add_land_locked_cells_to_mask(dsLandMask, dsBaseMesh,
                                                latitude_threshold=43.0,
@@ -177,7 +188,7 @@ if __name__ == '__main__':
             dsCritBlockMask = compute_mpas_transect_masks(
                 dsMesh=dsBaseMesh, fcMask=fcCritBlockages,
                 earthRadius=earth_radius, maskTypes=('cell',), logger=logger,
-                processCount=process_count, showProgress=True)
+                pool=pool, showProgress=True)
         dsLandMask = add_critical_land_blockages(dsLandMask, dsCritBlockMask)
 
     fcCritPassages = FeatureCollection()
@@ -203,7 +214,7 @@ if __name__ == '__main__':
             dsCritPassMask = compute_mpas_transect_masks(
                 dsMesh=dsBaseMesh, fcMask=fcCritPassages,
                 earthRadius=earth_radius, maskTypes=('cell', 'edge'),
-                logger=logger, processCount=process_count, showProgress=True)
+                logger=logger, pool=pool, showProgress=True)
 
         # Alter critical passages to be at least two cells wide, to avoid sea ice
         # blockage.
@@ -214,7 +225,6 @@ if __name__ == '__main__':
 
     if args.preserve_floodplain:
         dsPreserve.append(dsBaseMesh)
-
 
     # cull the mesh based on the land mask
     dsCulledMesh = conversion.cull(dsBaseMesh, dsMask=dsLandMask,
@@ -245,7 +255,7 @@ if __name__ == '__main__':
             dsCritPassMask = compute_mpas_transect_masks(
                 dsMesh=dsCulledMesh, fcMask=fcCritPassages,
                 earthRadius=earth_radius, maskTypes=('cell', 'edge'),
-                logger=logger, processCount=process_count, showProgress=True)
+                logger=logger, pool=pool, showProgress=True)
 
         dsCritPassMask = widen_transect_edge_masks(dsCritPassMask, dsCulledMesh,
                                                    latitude_threshold=43.0)
@@ -261,7 +271,7 @@ if __name__ == '__main__':
         else:
             dsMask = compute_mpas_region_masks(
                 dsCulledMesh, fcMask=fcAntarcticIce, maskTypes=('cell',),
-                logger=logger, processCount=process_count, showProgress=True)
+                logger=logger, pool=pool, showProgress=True)
         landIceMask = dsMask.regionCellMasks.isel(nRegions=0)
         dsLandIceMask = xarray.Dataset()
         dsLandIceMask['landIceMask'] = landIceMask
@@ -281,3 +291,6 @@ if __name__ == '__main__':
                     variable_list=['allOnCells'],
                     filename_pattern='no_ISC_culled_mesh.nc',
                     out_dir='no_ISC_culled_mesh_vtk')
+
+    if pool is not None:
+        pool.terminate()
