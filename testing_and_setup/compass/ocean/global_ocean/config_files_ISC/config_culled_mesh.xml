@@ -8,6 +8,7 @@
 		<step executable="./cull_mesh.py">
 			<argument flag="--with_critical_passages"></argument>
             <argument flag="--with_cavities"></argument>
+			<argument flag="--mask_creation_process_count">18</argument>
 		</step>
 	</run_script>
 </config>
