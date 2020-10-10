@@ -2,12 +2,12 @@
 <config case="culled_mesh">
 
 	<add_link source="../base_mesh/base_mesh.nc" dest="base_mesh.nc"/>
-	<add_link source_path="script_configuration_dir" source="scripts/cull_mesh.py" dest="cull_mesh.py"/>
 
 	<run_script name="run.py">
-		<step executable="./cull_mesh.py">
+		<step executable="ocean_cull_mesh">
 			<argument flag="--with_critical_passages"></argument>
             <argument flag="--with_cavities"></argument>
+			<argument flag="--mask_creation_process_count">18</argument>
 		</step>
 	</run_script>
 </config>
