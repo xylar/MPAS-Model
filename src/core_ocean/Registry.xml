@@ -792,6 +792,15 @@
 					description="Coefficient for SAL scalar approximation"
 					possible_values="0.0 to turn off, 0.09 is typical value to use for scalar approximation"
 		/>
+	<nml_record name="sediment transport" mode="init; forward">
+		<nml_option name="config_bedload_sediment_transport" type="logical" default_value=".false." units="unitless"
+					description="Controls if bedload sediment transport is computed."
+					possible_values=".true. or .false."
+		/>
+		<nml_option name="config_suspended_sediment_transport" type="logical" default_value=".false." units="unitless"
+					description="Controls if suspended sediment transport is computed."
+					possible_values=".true. or .false."
+		/>
 	</nml_record>
 	<nml_record name="vegetation_drag" mode="init;forward">
 		<nml_option name="config_use_vegetation_drag" type="logical" default_value=".false." units="unitless"
