@@ -103,9 +103,6 @@
 			description="Max number of tidal potential constituents"
 			definition="maxTidalConstituents+maxTidalConstituents"
 		/>
-		<dim name="nSedimentClasses" units="unitless"
-			 description="The number of sediment classes considered in the model."
-		/>
 	</dims>
 
 	<!--*************************************-->
@@ -3373,43 +3370,39 @@
 			 packages="tidalForcing"
 		/>
 		<!-- Input fields for sediment transport -->
-		<var name="sedimentGrainDiameter" type="real" dimensions="nSedimentClasses nCells" units="m"
+		<var name="sedimentGrainDiameter" type="real" dimensions="nCells" units="m"
 			 description="Median grain diameter of each sediment class"
 			 packages="sedimentTransportPKG"
 		/>
-		<var name="sedimentGrainDensity" type="real" dimensions="nSedimentClasses nCells" units="kg m^{-3}"
+		<var name="sedimentGrainDensity" type="real" dimensions="nCells" units="kg m^{-3}"
 			 description="Grain density of each sediment class"
 			 packages="sedimentTransportPKG"
 		/>
-		<var name="sedimentSettlingVelocity" type="real" dimensions="nSedimentClasses nCells" units="m s^{-1}"
+		<var name="sedimentSettlingVelocity" type="real" dimensions="nCells" units="m s^{-1}"
 			 description="Sediment settling velocity"
 			 packages="sedimentTransportPKG"
 		/>
-		<var name="sedimentClassFraction" type="real" dimensions="nSedimentClasses nCells Time" units=""
+		<var name="sedimentClassFraction" type="real" dimensions="nCells Time" units=""
 			 description="Fraction of each sediment class on bed sediment layer"
 			 packages="sedimentTransportPKG"
 		/>
-		<var name="sedimentBedloadTransportRate" type="real" dimensions="nSedimentClasses nCells Time" units="kg m^{-1} s^{-1}"
+		<var name="sedimentBedloadTransportRate" type="real" dimensions="nCells Time" units="kg m^{-1} s^{-1}"
 			 description="Sediment bedload transport rate"
 			 packages="sedimentTransportPKG"
 		/>
-		<var name="sedimentSuspendedConcentration" type="real" dimensions="nSedimentClasses nVertLevels nCells Time" units="kg m^{-3}"
-			 description="Sediment suspended concentration"
-			 packages="sedimentTransportPKG"
-		/>
-		<var name="sedimentBedloadTransportCoeff" type="real" dimensions="nSedimentClasses nCells" units=""
+		<var name="sedimentBedloadTransportCoeff" type="real" dimensions="nCells" units=""
 			 description="Sediment bedload transport coefficient (0, 1.0)"
 			 packages="sedimentTransportPKG"
 		/>
-		<var name="sedimentCrticalErosionShear" type="real" dimensions="nSedimentClasses nCells" units="m^2 s^2"
+		<var name="sedimentCrticalErosionShear" type="real" dimensions="nCells" units="m^2 s^2"
 			 description="crtical erosion shear stress"
 			 packages="sedimentTransportPKG"
 		/>
-		<var name="sedimentErodibilityConstant" type="real" dimensions="nSedimentClasses nCells" units="kg m^{-2} s^{-1}"
+		<var name="sedimentErodibilityConstant" type="real" dimensions="nCells" units="kg m^{-2} s^{-1}"
 			 description="Sediment erodibility constant for each sediment class"
 			 packages="sedimentTransportPKG"
 		/>
-		<var name="sedimentBedPorosity" type="real" dimensions="nSedimentClasses nCells" units=""
+		<var name="sedimentBedPorosity" type="real" dimensions="nCells" units=""
 			 description="Sediment bed porosity"
 			 packages="sedimentTransportPKG"
 		/>

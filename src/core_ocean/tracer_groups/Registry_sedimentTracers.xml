@@ -1,34 +1,34 @@
 	<nml_record name="tracer_forcing_sedimentTracers">
 		<nml_option name="config_use_sedimentTracers" type="logical" default_value=".false." units="unitless"
-			description="if true, the 'sedimentTracers' category is enabled for the run"
+			description="if true, the 'sedimentGRP' category is enabled for the run"
 			possible_values=".true. or .false."
 		/>
 		<nml_option name="config_use_sedimentTracers_surface_bulk_forcing" type="logical" default_value=".false." units="unitless"
-			description="if true, surface bulk forcing from coupler is added to surfaceTracerFlux in 'sedimentTracers' category"
+			description="if true, surface bulk forcing from coupler is added to surfaceTracerFlux in 'sedimentGRP' category"
 			possible_values=".true. or .false."
 		/>
 		<nml_option name="config_use_sedimentTracers_surface_restoring" type="logical" default_value=".false." units="unitless"
-			description="if true, surface restoring source is applied to tracers in 'sedimentTracers' category"
+			description="if true, surface restoring source is applied to tracers in 'sedimentGRP' category"
 			possible_values=".true. or .false."
 		/>
 		<nml_option name="config_use_sedimentTracers_interior_restoring" type="logical" default_value=".false." units="unitless"
-			description="if true, interior restoring source is applied to tracers in 'sedimentTracers' category"
+			description="if true, interior restoring source is applied to tracers in 'sedimentGRP' category"
 			possible_values=".true. or .false."
 		/>
 		<nml_option name="config_use_sedimentTracers_exponential_decay" type="logical" default_value=".false." units="unitless"
-			description="if true, exponential decay source is applied to tracers in 'sedimentTracers' category"
+			description="if true, exponential decay source is applied to tracers in 'sedimentGRP' category"
 			possible_values=".true. or .false."
 		/>
 		<nml_option name="config_use_sedimentTracers_idealAge_forcing" type="logical" default_value=".false." units="unitless"
-			description="if true, idealAge forcing source is applied to tracers in 'sedimentTracers' category"
+			description="if true, idealAge forcing source is applied to tracers in 'sedimentGRP' category"
 			possible_values=".true. or .false."
 		/>
 		<nml_option name="config_use_sedimentTracers_ttd_forcing" type="logical" default_value=".false." units="unitless"
-			description="if true, transit time distribution forcing source is applied to tracers in 'sedimentTracers' category"
+			description="if true, transit time distribution forcing source is applied to tracers in 'sedimentGRP' category"
 			possible_values=".true. or .false."
 		/>
 		<nml_option name="config_use_sedimentTracers_surface_value" type="logical" default_value=".false." units="unitless"
-			description="if true, surface value is computed for 'sedimentTracers' category"
+			description="if true, surface value is computed for 'sedimentGRP' category"
 			possible_values=".true. or .false."
 		/>
 	</nml_record>
@@ -45,35 +45,39 @@
 
 	<var_struct name="state" time_levs="2">
 		<var_struct name="tracers" time_levs="2">
-      <var name="SSC" dimensions="nSedimentClasses nVertLevels nCells Time" type="real" 
-        units="kg m^{-3}"
-        description="Suspended Sediment Concentration"
-        packages="sedimentTracersPKG" 
-			/>
+			<var_array name="sedimentTracers" dimensions="nVertLevels nCells Time" type="real" packages="sedimentTracersPKG" >
+				<!-- Add constituents of tracer group -->
+				<var name="sedConcen" array_group="sedimentGRP" units="kg m^{-3}"
+          description="(suspended) sediment Concentration"
+				/>
+			</var_array>
 		</var_struct>
 	</var_struct>
 
 	<var_struct name="tend" time_levs="1">
 		<var_struct name="tracersTend" time_levs="1">
-      <var name="SSCTend" type="real" dimensions="nSedimentClasses nVertLevels nCells Time" 
-        unit="kg m^{-3} s^{-1}"
-        description="Suspended Sediment Concentration Tendency"
-        packages="sedimentTracersPKG"
-			/>
+			<var_array name="sedimentTracersTend" type="real" dimensions="nVertLevels nCells Time" packages="sedimentTracersPKG">
+				<!-- Add constituents of tracer group -->
+				<var name="sedConcenTend" array_group="sedimentGRP" units="kg m^{-3} s^{-1}"
+          description="(suspended) sediment Cocentration Tendency"
+				/>
+			</var_array>
 		</var_struct>
 	</var_struct>
 
 	<var_struct name="forcing" time_levs="1">
 		<var_struct name="tracersSurfaceFlux" time_levs="1">
-      <var name="SSCSurfaceFlux" type="real" dimensions="nSedimentClasses nCells Time" 
-        unit="kg m^{-3} m s^{-1}"
-        description="Suspended Sediment Concentration Surface Flux"
-        packages="sedimentTracersPKG"
-			/>
-      <var name="SSCSurfaceFluxRunoff" type="real" dimensions="nSedimentClasses nCells Time" 
-        unit="kg m^{-3} m s^{-1}"
-        description="Suspended Sediment Concentration Surface Flux Runoff"
-        packages="sedimentTracersPKG"
-			/>
+			<var_array name="sedimentTracersSurfaceFlux" type="real" dimensions="nCells Time" packages="sedimentTracersPKG">
+				<!-- Add constituents of tracer group -->
+				<var name="sedConcenSurfaceFlux" array_group="sedimentSurfaceFluxGRP" units="kg m^{-3} m s^{-1}"
+          description=" (suspended) sediment Concentration Surface Flux"
+				/>
+			</var_array>
+			<var_array name="sedimentTracersSurfaceFluxRunoff" type="real" dimensions="nCells Time" packages="sedimentTracersPKG">
+				<!-- Add constituents of tracer group -->
+				<var name="sedConcenSurfaceFluxRunoff" array_group="sedimentSurfaceFluxRunoffGRP" units="kg m^{-3} m s^{-1}"
+					description="(suspended) sediment Concentration Surface Flux Due to Runoff"
+				/>
+			</var_array>
 		</var_struct>
 	</var_struct>
