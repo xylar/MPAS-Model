@@ -504,6 +504,7 @@ end subroutine ocn_init_routines_compute_min_max_level!}}}
          call mpas_pool_get_array(meshPool, 'refBottomDepthTopOfCell', refBottomDepthTopOfCell)
          call mpas_pool_get_array(meshPool, 'bottomDepth', bottomDepth)
          call mpas_pool_get_array(meshPool, 'vertCoordMovementWeights', vertCoordMovementWeights)
+         call mpas_pool_get_array(meshPool, 'minLevelCell', minLevelCell)
          call mpas_pool_get_array(meshPool, 'maxLevelCell', maxLevelCell)
 
          call mpas_pool_get_array(verticalMeshPool, 'refZMid', refZMid)
