@@ -158,7 +158,7 @@ module ocn_time_integration_split
       integer, dimension(:), pointer :: nCellsArray, nEdgesArray
 
       ! Mesh array pointers
-      integer, dimension(:), pointer :: maxLevelCell, maxLevelEdgeTop, nEdgesOnEdge, nEdgesOnCell
+      integer, dimension(:), pointer :: maxLevelCell, maxLevelEdgeTop, minLevelCell, minLevelEdgeBot, nEdgesOnEdge, nEdgesOnCell
       integer, dimension(:,:), pointer :: cellsOnEdge, edgeMask, edgesOnEdge
       integer, dimension(:,:), pointer :: edgesOnCell, edgeSignOnCell
 
@@ -291,6 +291,7 @@ module ocn_time_integration_split
          call mpas_pool_get_array(statePool, 'lowFreqDivergence', lowFreqDivergenceNew, 2)
 
          call mpas_pool_get_array(meshPool, 'maxLevelCell', maxLevelCell)
+         call mpas_pool_get_array(meshPool, 'minLevelCell', minLevelCell)
          call mpas_pool_get_dimension(tracersPool, 'index_salinity', indexSalinity)
 
          nCells = nCellsPtr
@@ -301,7 +302,7 @@ module ocn_time_integration_split
          !$omp parallel
          !$omp do schedule(runtime) private(k)
          do iEdge = 1, nEdges
-            do k = 1, nVertLevels !maxLevelEdgeTop % array(iEdge)
+            do k = 1, nVertLevels !maxLevelEdgeTop % array(iEdge) !mlc-consider using minLevelEdgeBot,maxLevelEdgeTop
 
                ! The baroclinic velocity needs be recomputed at the beginning of a
                ! timestep because the implicit vertical mixing is conducted on the
@@ -2036,7 +2037,7 @@ module ocn_time_integration_split
       type (mpas_pool_type), pointer :: statePool, meshPool, tracersPool
 
       integer :: iTracer, cell, cell1, cell2
-      integer, dimension(:), pointer :: maxLevelEdgeTop
+      integer, dimension(:), pointer :: minLevelCell, maxLevelEdgeTop, minLevelEdgeBot
       integer, dimension(:,:), pointer :: cellsOnEdge
       real (kind=RKIND) :: normalThicknessFluxSum, layerThicknessSum, layerThicknessEdge1
       real (kind=RKIND), dimension(:), pointer :: refBottomDepth, normalBarotropicVelocity
@@ -2103,7 +2104,9 @@ module ocn_time_integration_split
 
             call mpas_pool_get_array(meshPool, 'refBottomDepth', refBottomDepth)
             call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
+            call mpas_pool_get_array(meshPool, 'minLevelCell', minLevelCell)
             call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+            call mpas_pool_get_array(meshPool, 'minLevelEdgeBot', minLevelEdgeBot)
 
             ! Compute barotropic velocity at first timestep
             ! This is only done upon start-up.
@@ -2124,7 +2127,7 @@ module ocn_time_integration_split
 
                if (config_filter_btr_mode) then
                   do iCell = 1, nCells
-                     layerThickness(1,iCell) = refBottomDepth(1)
+                     layerThickness(minLevelCell(iCell),iCell) = refBottomDepth(1) !mlc-is 1 the appropriate index for refBottomDepth
                   enddo
                endif
 
@@ -2139,11 +2142,11 @@ module ocn_time_integration_split
                   ! thicknessSum is initialized outside the loop because on land boundaries
                   ! maxLevelEdgeTop=0, but I want to initialize thicknessSum with a
                   ! nonzero value to avoid a NaN.
-                  layerThicknessEdge1 = 0.5_RKIND*( layerThickness(1,cell1) + layerThickness(1,cell2) )
-                  normalThicknessFluxSum = layerThicknessEdge1 * normalVelocity(1,iEdge)
+                  layerThicknessEdge1 = 0.5_RKIND*( layerThickness(minLevelEdgeBot(iEdge),cell1) + layerThickness(minLevelEdgeBot(iEdge),cell2) )
+                  normalThicknessFluxSum = layerThicknessEdge1 * normalVelocity(minLevelEdgeBot(iEdge),iEdge)
                   layerThicknessSum = layerThicknessEdge1
 
-                  do k=2, maxLevelEdgeTop(iEdge)
+                  do k = minLevelEdgeBot(iEdge)+1, maxLevelEdgeTop(iEdge) !mlc-do-k
                      ! ocn_diagnostic_solve has not yet been called, so compute hEdge
                      ! just for this edge.
                      layerThicknessEdge1 = 0.5_RKIND*( layerThickness(k,cell1) + layerThickness(k,cell2) )
@@ -2152,13 +2155,13 @@ module ocn_time_integration_split
                         + layerThicknessEdge1 * normalVelocity(k,iEdge)
                      layerThicknessSum = layerThicknessSum + layerThicknessEdge1
 
-                  enddo
+                  end do !mlc-end-do
                   normalBarotropicVelocity(iEdge) = normalThicknessFluxSum / layerThicknessSum
 
                   ! normalBaroclinicVelocity(k,iEdge) = normalVelocity(k,iEdge) - normalBarotropicVelocity(iEdge)
-                  do k = 1, maxLevelEdgeTop(iEdge)
+                  do k = minLevelEdgeBot(iEdge), maxLevelEdgeTop(iEdge) !mlc-do-k
                      normalBaroclinicVelocity(k,iEdge) = normalVelocity(k,iEdge) - normalBarotropicVelocity(iEdge)
-                  enddo
+                  end do !mlc-end-do
 
                   ! normalBaroclinicVelocity=0, normalVelocity=0 on land cells
                   do k = maxLevelEdgeTop(iEdge)+1, nVertLevels
