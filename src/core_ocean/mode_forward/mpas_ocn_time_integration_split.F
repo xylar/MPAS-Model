@@ -449,6 +449,7 @@ module ocn_time_integration_split
                call mpas_pool_get_subpool(tendPool, 'tracersTend', tracersTendPool)
 
                call mpas_pool_get_array(meshPool, 'maxLevelCell', maxLevelCell)
+               call mpas_pool_get_array(meshPool, 'minLevelCell', minLevelCell)
 
                call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessCur, 1)
                call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessNew, 2)
@@ -460,7 +461,7 @@ module ocn_time_integration_split
                !$omp parallel
                !$omp do schedule(runtime) private(k)
                do iCell = 1, nCells
-                  do k = 1, maxLevelCell(iCell)
+                  do k = minLevelCell(iCell), maxLevelCell(iCell)
                      ! this is h^{hf}_{n+1}
                      highFreqThicknessNew(k,iCell) = highFreqThicknessCur(k,iCell) + dt * highFreqThicknessTend(k,iCell)
                   end do
@@ -540,6 +541,7 @@ module ocn_time_integration_split
 
                call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
                call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+               call mpas_pool_get_array(meshPool, 'minLevelEdgeBot', minLevelEdgeBot)
                call mpas_pool_get_array(meshPool, 'dcEdge', dcEdge)
 
                call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocityNew, 2)
@@ -565,7 +567,7 @@ module ocn_time_integration_split
                   cell2 = cellsOnEdge(2,iEdge)
 
                   uTemp = 0.0_RKIND  ! could put this after with uTemp(maxleveledgetop+1:nvertlevels)=0
-                  do k = 1, maxLevelEdgeTop(iEdge)
+                  do k = minLevelEdgeBot(iEdge), maxLevelEdgeTop(iEdge)
 
                      ! normalBaroclinicVelocityNew = normalBaroclinicVelocityOld + dt*(-f*normalBaroclinicVelocityPerp
                      !                             + T(u*,w*,p*) + g*grad(SSH*) )
@@ -580,17 +582,17 @@ module ocn_time_integration_split
                   ! thicknessSum is initialized outside the loop because on land boundaries
                   ! maxLevelEdgeTop=0, but I want to initialize thicknessSum with a
                   ! nonzero value to avoid a NaN.
-                  normalThicknessFluxSum = layerThickEdge(1,iEdge) * uTemp(1)
-                  thicknessSum  = layerThickEdge(1,iEdge)
+                  normalThicknessFluxSum = layerThickEdge(minLevelEdgeBot(iEdge),iEdge) * uTemp(minLevelEdgeBot(iEdge))
+                  thicknessSum  = layerThickEdge(minLevelEdgeBot(iEdge),iEdge)
 
-                  do k = 2, maxLevelEdgeTop(iEdge)
+                  do k = minLevelEdgeBot(iEdge)+1, maxLevelEdgeTop(iEdge)
                      normalThicknessFluxSum = normalThicknessFluxSum + layerThickEdge(k,iEdge) * uTemp(k)
                      thicknessSum  =  thicknessSum + layerThickEdge(k,iEdge)
                   enddo
                   barotropicForcing(iEdge) = split * normalThicknessFluxSum / thicknessSum / dt
 
 
-                  do k = 1, maxLevelEdgeTop(iEdge)
+                  do k = minLevelEdgeBot(iEdge), maxLevelEdgeTop(iEdge)
                      ! These two steps are together here:
                      !{\bf u}'_{k,n+1} = {\bf u}'_{k,n} - \Delta t {\overline {\bf G}}
                      !{\bf u}'_{k,n+1/2} = \frac{1}{2}\left({\bf u}^{'}_{k,n} +{\bf u}'_{k,n+1}\right)
@@ -879,6 +881,7 @@ module ocn_time_integration_split
                 call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
                 call mpas_pool_get_array(meshPool, 'bottomDepth', bottomDepth)
                 call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+                call mpas_pool_get_array(meshPool, 'minLevelEdgeBot', minLevelEdgeBot)
                 call mpas_pool_get_array(meshPool, 'refBottomDepthTopOfCell', refBottomDepthTopOfCell)
                 call mpas_pool_get_array(meshPool, 'edgeSignOnCell', edgeSignOnCell)
                 call mpas_pool_get_array(meshPool, 'dvEdge', dvEdge)
@@ -1132,6 +1135,7 @@ module ocn_time_integration_split
                    call mpas_pool_get_array(meshPool, 'edgesOnCell', edgesOnCell)
                    call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
                    call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+                   call mpas_pool_get_array(meshPool, 'minLevelEdgeBot', minLevelEdgeBot)
                    call mpas_pool_get_array(meshPool, 'refBottomDepthTopOfCell', refBottomDepthTopOfCell)
                    call mpas_pool_get_array(meshPool, 'bottomDepth', bottomDepth)
                    call mpas_pool_get_array(meshPool, 'edgeSignOnCell', edgeSignOnCell)
@@ -1346,6 +1350,7 @@ module ocn_time_integration_split
                call mpas_pool_get_array(statePool, 'normalBaroclinicVelocity', normalBaroclinicVelocityNew, 2)
 
                call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+               call mpas_pool_get_array(meshPool, 'minLevelEdgeBot', minLevelEdgeBot)
                call mpas_pool_get_array(meshPool, 'edgeMask', edgeMask)
 
                nEdges = nEdgesPtr
@@ -1379,10 +1384,10 @@ module ocn_time_integration_split
                   ! thicknessSum is initialized outside the loop because on land boundaries
                   ! maxLevelEdgeTop=0, but I want to initialize thicknessSum with a
                   ! nonzero value to avoid a NaN.
-                  normalThicknessFluxSum = layerThickEdge(1,iEdge) * uTemp(1)
-                  thicknessSum  = layerThickEdge(1,iEdge)
+                  normalThicknessFluxSum = layerThickEdge(minLevelEdgeBot(iEdge),iEdge) * uTemp(minLevelEdgeBot(iEdge))
+                  thicknessSum  = layerThickEdge(minLevelEdgeBot(iEdge),iEdge)
 
-                  do k = 2, maxLevelEdgeTop(iEdge)
+                  do k = minLevelEdgeBot(iEdge)+1, maxLevelEdgeTop(iEdge)
                      normalThicknessFluxSum = normalThicknessFluxSum + layerThickEdge(k,iEdge) * uTemp(k)
                      thicknessSum  =  thicknessSum + layerThickEdge(k,iEdge)
                   enddo
@@ -1529,8 +1534,10 @@ module ocn_time_integration_split
             call mpas_pool_get_subpool(block % structs, 'scratch', scratchPool)
 
             call mpas_pool_get_array(meshPool, 'maxLevelCell', maxLevelCell)
+            call mpas_pool_get_array(meshPool, 'minLevelCell', minLevelCell)
             call mpas_pool_get_array(meshPool, 'edgeMask', edgeMask)
             call mpas_pool_get_array(meshPool, 'maxLevelEdgeTop', maxLevelEdgeTop)
+            call mpas_pool_get_array(meshPool, 'minLevelEdgeBot', minLevelEdgeBot)
 
             call mpas_pool_get_array(tracersPool, 'activeTracers', tracersGroupCur, 1)
             call mpas_pool_get_array(tracersPool, 'activeTracers', tracersGroupNew, 2)
@@ -1575,7 +1582,7 @@ module ocn_time_integration_split
                !$omp do schedule(runtime) private(k, temp_h, temp, i)
                do iCell = 1, nCells
                   ! sshNew is a pointer, defined above.
-                  do k = 1, maxLevelCell(iCell)
+                  do k = minLevelCell(iCell), maxLevelCell(iCell)
 
                      ! this is h_{n+1}
                      temp_h = layerThicknessCur(k,iCell) + dt * layerThicknessTend(k,iCell)
@@ -1600,7 +1607,7 @@ module ocn_time_integration_split
                   !$omp parallel
                   !$omp do schedule(runtime) private(k, temp)
                   do iCell = 1, nCells
-                     do k = 1, maxLevelCell(iCell)
+                     do k = minLevelCell(iCell), maxLevelCell(iCell)
 
                         ! h^{hf}_{n+1} was computed in Stage 1
 
@@ -1652,7 +1659,7 @@ module ocn_time_integration_split
                !$omp parallel
                !$omp do schedule(runtime) private(k)
                do iCell = 1, nCells
-                  do k = 1, maxLevelCell(iCell)
+                  do k = minLevelCell(iCell), maxLevelCell(iCell)
                      ! this is h_{n+1}
                      layerThicknessNew(k,iCell) = layerThicknessCur(k,iCell) + dt * layerThicknessTend(k,iCell)
                   end do
@@ -1664,7 +1671,7 @@ module ocn_time_integration_split
                   !$omp parallel
                   !$omp do schedule(runtime) private(k)
                   do iEdge = 1, nEdges
-                     do k= 1, maxLevelEdgeTop(iEdge)
+                     do k= minLevelEdgeBot(iEdge), maxLevelEdgeTop(iEdge)
                         activeTracerHorizontalAdvectionEdgeFlux(:,k,iEdge) = &
                           activeTracerHorizontalAdvectionEdgeFlux(:,k,iEdge) / &
                           layerThickEdge(k,iEdge)
@@ -1674,7 +1681,7 @@ module ocn_time_integration_split
 
                   !$omp do schedule(runtime) private(k)
                   do iCell = 1, nCells
-                     do k= 1, maxLevelCell(iCell)
+                     do k= minLevelCell(iCell), maxLevelCell(iCell)
                         activeTracerHorizontalAdvectionTendency(:,k,iCell) = &
                            activeTracerHorizontalAdvectionTendency(:,k,iCell) / &
                            layerThicknessNew(k,iCell)
@@ -1720,7 +1727,7 @@ module ocn_time_integration_split
                         !$omp parallel
                         !$omp do schedule(runtime) private(k)
                         do iCell = 1, nCells
-                           do k = 1, maxLevelCell(iCell)
+                           do k = minLevelCell(iCell), maxLevelCell(iCell)
                               tracersGroupNew(:,k,iCell) = (tracersGroupCur(:,k,iCell) * layerThicknessCur(k,iCell) + dt &
                                                          * tracersGroupTend(:,k,iCell) ) / layerThicknessNew(k,iCell)
                            end do
@@ -1733,7 +1740,7 @@ module ocn_time_integration_split
                            !$omp parallel
                            !$omp do schedule(runtime) private(k)
                            do iCell = 1, nCells
-                              do k = 1, maxLevelCell(iCell)
+                              do k = minLevelCell(iCell), maxLevelCell(iCell)
                                  tracersGroupNew(indexSalinity,k,iCell) = max(0.001_RKIND, tracersGroupNew(indexSalinity,k,iCell))
                               end do
                            end do
@@ -1751,7 +1758,7 @@ module ocn_time_integration_split
                               do iCell = 1, nCells
 
                                 ! Reset tracer1 to 2 in top n layers
-                                do k = 1, config_reset_debugTracers_top_nLayers
+                                do k = minLevelCell(iCell), minLevelCell(iCell)+config_reset_debugTracers_top_nLayers
                                    tracersGroupNew(1,k,iCell) = 2.0_RKIND
                                 end do
 
@@ -1763,11 +1770,11 @@ module ocn_time_integration_split
                                      .or.lat>- 2.5.and.lat<  2.5 &
                                      .or.lat> 35.0.and.lat< 40.0 &
                                      .or.lat> 55.0.and.lat< 60.0 ) then
-                                    do k = 1, config_reset_debugTracers_top_nLayers
+                                    do k = minLevelCell(iCell), minLevelCell(iCell)+config_reset_debugTracers_top_nLayers
                                        tracersGroupNew(2,k,iCell) = 2.0_RKIND
                                     end do
                                 else
-                                    do k = 1, config_reset_debugTracers_top_nLayers
+                                    do k = minLevelCell(iCell), minLevelCell(iCell)+config_reset_debugTracers_top_nLayers
                                        tracersGroupNew(2,k,iCell) = 1.0_RKIND
                                     end do
                                 end if
@@ -1781,11 +1788,11 @@ module ocn_time_integration_split
                                      .or.lat> 10.0.and.lat< 15.0 &
                                      .or.lat> 30.0.and.lat< 35.0 &
                                      .or.lat> 50.0.and.lat< 55.0 ) then
-                                    do k = 1, config_reset_debugTracers_top_nLayers
+                                    do k = minLevelCell(iCell), minLevelCell(iCell)+config_reset_debugTracers_top_nLayers
                                        tracersGroupNew(3,k,iCell) = 2.0_RKIND
                                     end do
                                 else
-                                    do k = 1, config_reset_debugTracers_top_nLayers
+                                    do k = minLevelCell(iCell), minLevelCell(iCell)+config_reset_debugTracers_top_nLayers
                                        tracersGroupNew(3,k,iCell) = 1.0_RKIND
                                     end do
                                 end if
@@ -1803,7 +1810,7 @@ module ocn_time_integration_split
                   !$omp parallel
                   !$omp do schedule(runtime) private(k)
                   do iCell = 1, nCells
-                     do k = 1, maxLevelCell(iCell)
+                     do k = minLevelCell(iCell), maxLevelCell(iCell)
 
                         ! h^{hf}_{n+1} was computed in Stage 1
 
@@ -1827,7 +1834,7 @@ module ocn_time_integration_split
                !$omp parallel
                !$omp do schedule(runtime) private(k)
                do iEdge = 1, nEdges
-                  do k = 1, maxLevelEdgeTop(iEdge)
+                  do k = minLevelEdgeBot(iEdge), maxLevelEdgeTop(iEdge)
                      normalVelocityNew(k,iEdge) = normalBarotropicVelocityNew(iEdge) + 2 * normalBaroclinicVelocityNew(k,iEdge) &
                                                 - normalBaroclinicVelocityCur(k,iEdge)
                   end do
