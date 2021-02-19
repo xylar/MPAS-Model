@@ -302,7 +302,7 @@ module ocn_time_integration_split
          !$omp parallel
          !$omp do schedule(runtime) private(k)
          do iEdge = 1, nEdges
-            do k = 1, nVertLevels !maxLevelEdgeTop % array(iEdge) !mlc-consider using minLevelEdgeBot,maxLevelEdgeTop
+            do k = 1, nVertLevels !maxLevelEdgeTop % array(iEdge) 
 
                ! The baroclinic velocity needs be recomputed at the beginning of a
                ! timestep because the implicit vertical mixing is conducted on the
@@ -2127,7 +2127,7 @@ module ocn_time_integration_split
 
                if (config_filter_btr_mode) then
                   do iCell = 1, nCells
-                     layerThickness(minLevelCell(iCell),iCell) = refBottomDepth(1) !mlc-is 1 the appropriate index for refBottomDepth
+                     layerThickness(minLevelCell(iCell),iCell) = refBottomDepth(1) 
                   enddo
                endif
 
@@ -2146,7 +2146,7 @@ module ocn_time_integration_split
                   normalThicknessFluxSum = layerThicknessEdge1 * normalVelocity(minLevelEdgeBot(iEdge),iEdge)
                   layerThicknessSum = layerThicknessEdge1
 
-                  do k = minLevelEdgeBot(iEdge)+1, maxLevelEdgeTop(iEdge) !mlc-do-k
+                  do k = minLevelEdgeBot(iEdge)+1, maxLevelEdgeTop(iEdge) 
                      ! ocn_diagnostic_solve has not yet been called, so compute hEdge
                      ! just for this edge.
                      layerThicknessEdge1 = 0.5_RKIND*( layerThickness(k,cell1) + layerThickness(k,cell2) )
@@ -2155,13 +2155,13 @@ module ocn_time_integration_split
                         + layerThicknessEdge1 * normalVelocity(k,iEdge)
                      layerThicknessSum = layerThicknessSum + layerThicknessEdge1
 
-                  end do !mlc-end-do
+                  end do
                   normalBarotropicVelocity(iEdge) = normalThicknessFluxSum / layerThicknessSum
 
                   ! normalBaroclinicVelocity(k,iEdge) = normalVelocity(k,iEdge) - normalBarotropicVelocity(iEdge)
-                  do k = minLevelEdgeBot(iEdge), maxLevelEdgeTop(iEdge) !mlc-do-k
+                  do k = minLevelEdgeBot(iEdge), maxLevelEdgeTop(iEdge)
                      normalBaroclinicVelocity(k,iEdge) = normalVelocity(k,iEdge) - normalBarotropicVelocity(iEdge)
-                  end do !mlc-end-do
+                  end do
 
                   ! normalBaroclinicVelocity=0, normalVelocity=0 on land cells
                   do k = maxLevelEdgeTop(iEdge)+1, nVertLevels
