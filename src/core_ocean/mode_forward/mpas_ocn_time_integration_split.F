@@ -2171,6 +2171,10 @@ module ocn_time_integration_split
                   end do
 
                   ! normalBaroclinicVelocity=0, normalVelocity=0 on land cells
+                  do k = 1, minLevelEdgeBot(iEdge)-1
+                     normalBaroclinicVelocity(k,iEdge) = 0.0_RKIND
+                     normalVelocity(k,iEdge) = 0.0_RKIND
+                  enddo
                   do k = maxLevelEdgeTop(iEdge)+1, nVertLevels
                      normalBaroclinicVelocity(k,iEdge) = 0.0_RKIND
                      normalVelocity(k,iEdge) = 0.0_RKIND
