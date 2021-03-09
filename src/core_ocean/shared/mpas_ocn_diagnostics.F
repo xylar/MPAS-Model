@@ -546,7 +546,7 @@ contains
         do i = 1, vertexDegree
           iEdge = edgesOnVertex(i, iVertex)
           r_tmp = dcEdge(iEdge) * dvEdge(iEdge) * 0.25_RKIND / areaTriangle(iVertex)
-          do k = 1, nVertLevels
+          do k = minLevelVertexBot(iVertex), minLevelVertexTop(iVertex)
             kineticEnergyVertex(k, iVertex) = kineticEnergyVertex(k, iVertex) + r_tmp * normalVelocity(k, iEdge)**2
           end do
         end do
@@ -560,7 +560,7 @@ contains
         do i = 1, nEdgesOnCell(iCell)
           j = kiteIndexOnCell(i, iCell)
           iVertex = verticesOnCell(i, iCell)
-          do k = 1, nVertLevels
+          do k = minLevelCell(iCell), maxLevelCell(iCell)
             kineticEnergyVertexOnCells(k, iCell) = kineticEnergyVertexOnCells(k, iCell) + kiteAreasOnVertex(j, iVertex) &
                                                  * kineticEnergyVertex(k, iVertex) * invAreaCell1
           end do
@@ -573,7 +573,7 @@ contains
       !
       !$omp do schedule(runtime) private(k)
       do iCell = 1, nCells
-         do k = 1, nVertLevels
+         do k = minLevelCell(iCell), maxLevelCell(iCell)
             kineticEnergyCell(k,iCell) = 5.0_RKIND / 8.0_RKIND * kineticEnergyCell(k,iCell) + 3.0_RKIND / 8.0_RKIND &
                                        * kineticEnergyVertexOnCells(k,iCell)
          end do
