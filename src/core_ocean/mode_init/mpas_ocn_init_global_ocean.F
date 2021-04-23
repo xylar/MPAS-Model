@@ -442,7 +442,7 @@ contains
             call mpas_pool_get_subpool(domain % blocklist % structs, 'state', statePool)
             call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
 
-            call mpas_pool_get_dimension(tracersPool, 'index_sediment', tracerIndex)
+            call mpas_pool_get_dimension(tracersPool, 'index_sedConcen', tracerIndex)
             indexField(1) = tracerIndex
             do iCell = 1, nCellsSolve
                do k = 1, nVertLevels
