@@ -90,7 +90,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   subroutine ocn_tracer_sediment_compute(sedimentTracers, nTracerssediment, forcingPool, &
+   subroutine ocn_tracer_sediment_compute(sedimentTracers, nTracersSediment, forcingPool, &
       nCellsSolve, maxLevelCell, nVertLevels, layerThickness, sedimentTracersTend, err)!{{{
 
       !-----------------------------------------------------------------
@@ -114,7 +114,7 @@ contains
       type (mpas_pool_type), intent(in) :: forcingPool
 
       ! scalars
-      integer, intent(in) :: nTracerssediment, nCellsSolve, nVertLevels
+      integer, intent(in) :: nTracersSediment, nCellsSolve, nVertLevels
 
       !
       ! two dimensional pointers
@@ -333,7 +333,6 @@ contains
 
       call mpas_pool_get_dimension(tracersPool, 'index_sedConcen',  index_dummy)
         sedimentIndices%sedConcen_ind  = index_dummy
-call mpas_log_write('Zhendong, the sedimentIndices%sedConcen_ind is $i', intArgs=(/sedimentIndices%sedConcen_ind/))
 ! sediment_init sets short and long names, units in SEDIMENT_indices
         call SEDIMENT_init(SEDIMENT_indices)
 

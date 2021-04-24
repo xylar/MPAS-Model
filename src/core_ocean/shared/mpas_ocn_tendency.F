@@ -875,13 +875,13 @@ contains
          !
          if ( groupName == 'sedimentTracers' ) then
             call ocn_tracer_sediment_compute(tracerGroup, &
-                                     nTracerGroup,forcingPool,  &
-                                     nCellsSolve, maxLevelCell, &
+                                     nTracersGroup,forcingPool,  &
+                                     nCellsOwned, maxLevelCell, &
                                      nVertLevels, layerThickness, &
                                      tracerGroupTend, err)
 
             call ocn_tracer_sediment_surface_flux_compute(tracerGroup, &
-                                     forcingPool, nCellsSolve, zMid,  &
+                                     forcingPool, nCellsOwned, zMid,  &
                                      tracerGroupSurfaceFlux, err)
          endif ! sediment
 
