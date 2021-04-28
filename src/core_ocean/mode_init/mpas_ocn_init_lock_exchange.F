@@ -90,7 +90,7 @@ contains
       type (mpas_pool_type), pointer :: meshPool, statePool, verticalMeshPool, tracersPool
 
       integer, pointer :: nCellsSolve, nEdgesSolve, nVertLevels, nVertLevelsP1, index_temperature, &
-                          index_salinity, index_tracer1, index_sedConcen
+                          index_salinity, index_tracer1, index_tracer2, index_sedConcen
 
       integer, dimension(:), pointer :: maxLevelCell
 
@@ -169,6 +169,7 @@ contains
          call mpas_pool_get_dimension(tracersPool, 'index_temperature', index_temperature)
          call mpas_pool_get_dimension(tracersPool, 'index_salinity', index_salinity)
          call mpas_pool_get_dimension(tracersPool, 'index_tracer1', index_tracer1)
+         call mpas_pool_get_dimension(tracersPool, 'index_tracer2', index_tracer2)
          call mpas_pool_get_dimension(tracersPool, 'index_sedConcen', index_sedConcen)
 
          call mpas_pool_get_array(meshPool, 'yCell', yCell)
@@ -228,22 +229,22 @@ contains
                if ( associated(debugTracers) ) then
                   if ( trim(config_lock_exchange_direction) == 'x' ) then
                      if(xCell(iCell) < xMinGlobal + (xMaxGlobal - xMinGlobal) * 0.5_RKIND) then
-                        debugTracers(index_tracer1, :, iCell) = config_lock_exchange_low_tracer1
+                        debugTracers(index_tracer2, :, iCell) = config_lock_exchange_low_tracer
                      else
-                        debugTracers(index_tracer1, :, iCell) = config_lock_exchange_high_tracer1
+                        debugTracers(index_tracer2, :, iCell) = config_lock_exchange_high_tracer
                      end if
 
                   elseif ( trim(config_lock_exchange_direction) == 'y' ) then
                      if(yCell(iCell) < yMinGlobal + (yMaxGlobal - yMinGlobal) * 0.5_RKIND) then
-                        debugTracers(index_tracer1, :, iCell) = config_lock_exchange_low_tracer1
+                        debugTracers(index_tracer2, :, iCell) = config_lock_exchange_low_tracer
                      else
-                        debugTracers(index_tracer1, :, iCell) = config_lock_exchange_high_tracer1
+                        debugTracers(index_tracer2, :, iCell) = config_lock_exchange_high_tracer
                      end if
 
                   elseif ( trim(config_lock_exchange_direction) == 'z' ) then
-                        debugTracers(index_tracer1, 1:nVertLevels/2, iCell) = config_lock_exchange_high_tracer1
-                        debugTracers(index_tracer1, nVertLevels/2+1:nVertLevels, iCell) = &
-                           config_lock_exchange_low_tracer1
+                        debugTracers(index_tracer2, 1:nVertLevels/2, iCell) = config_lock_exchange_high_tracer
+                        debugTracers(index_tracer2, nVertLevels/2+1:nVertLevels, iCell) = &
+                           config_lock_exchange_low_tracer
                   else
                      call mpas_log_write('MPAS-ocean: Error: wrong choice of config_lock_exchange_direction')
                   end if
@@ -281,8 +282,8 @@ contains
                end if
 
                if ( associated(debugTracers) ) then
-                  debugTracers(index_tracer1, 1, iCell) = config_lock_exchange_high_tracer1
-                  debugTracers(index_tracer1, 2:nVertLevels, iCell) = config_lock_exchange_low_tracer1
+                  debugTracers(index_tracer2, 1, iCell) = config_lock_exchange_high_tracer
+                  debugTracers(index_tracer2, 2:nVertLevels, iCell) = config_lock_exchange_low_tracer
                end if
 
                if ( associated(sedimentTracers) ) then
@@ -305,6 +306,13 @@ contains
             ! Set salinity
             if ( associated(activeTracers) ) then
                activeTracers(index_salinity, :, iCell) = config_lock_exchange_salinity
+            end if
+
+            ! Set debugging tracer1
+            if ( associated(debugTracers) ) then
+              do k = 1, nVertLevels
+                debugTracers(index_tracer1, k, iCell) = 1.0_RKIND
+              enddo
             end if
 
             ! Set bottomDepth
