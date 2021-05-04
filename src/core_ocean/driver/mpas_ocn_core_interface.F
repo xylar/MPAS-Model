@@ -127,6 +127,8 @@ module ocn_core_interface
       logical, pointer :: tidalPotentialForcingPKGActive
       logical, pointer :: vegetationDragPKGActive
       logical, pointer :: topographicWaveDragPKGActive
+      logical, pointer :: sedimentTransportPKGActive
+      logical, pointer :: sedimentTracersPKGActive
       logical, pointer :: inSituEOSActive
       logical, pointer :: variableShortwaveActive
       logical, pointer :: gmActive
@@ -164,6 +166,10 @@ module ocn_core_interface
       logical, pointer :: config_use_time_varying_atmospheric_forcing
       logical, pointer :: config_use_time_varying_land_ice_forcing
       logical, pointer :: config_use_gotm
+
+      logical, pointer :: config_sediment_bedload_enabled
+      logical, pointer :: config_sediment_suspended_enabled
+      logical, pointer :: config_use_sedimentTracers
 
       character (len=StrKIND), pointer :: config_time_integrator
       character (len=StrKIND), pointer :: config_ocean_run_mode
@@ -338,6 +344,20 @@ module ocn_core_interface
       call mpas_pool_get_config(configPool, 'config_use_topographic_wave_drag', config_use_topographic_wave_drag)
       if (config_use_topographic_wave_drag) then
          topographicWaveDragPKGActive = .true.
+      end if
+
+      ! test for computation of sediment transport, sedimentTransportPKGActive
+      !
+      call mpas_pool_get_package(packagePool, 'sedimentTransportPKGActive', sedimentTransportPKGActive)
+      call mpas_pool_get_package(packagePool, 'sedimentTracersPKGActive', sedimentTracersPKGActive)
+      call mpas_pool_get_config(configPool, 'config_sediment_bedload_enabled', config_sediment_bedload_enabled)
+      call mpas_pool_get_config(configPool, 'config_sediment_suspended_enabled', config_sediment_suspended_enabled)
+      call mpas_pool_get_config(configPool, 'config_use_sedimentTracers', config_use_sedimentTracers)
+      if (config_sediment_bedload_enabled .or. config_sediment_suspended_enabled) then
+        sedimentTransportPKGActive = .true.
+      end if
+      if (config_use_sedimentTracers .or. config_sediment_suspended_enabled) then
+        sedimentTracersPKGActive = .true.
       end if
 
       !
